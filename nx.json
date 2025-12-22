@@ -42,7 +42,8 @@
       "options": {
         "targetName": "lint"
       }
-    }
+    },
+    "@gridatek/nx-supabase"
   ],
   "generators": {
     "@nx/angular:application": {
