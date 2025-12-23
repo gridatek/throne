@@ -130,7 +130,8 @@ throne/
 
 ```bash
 # Start Supabase first
-cd apps/supabase && supabase start
+npx nx run supabase:build
+npx nx run supabase:start
 
 # Run tests
 npx nx e2e web-e2e
