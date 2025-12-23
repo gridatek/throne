@@ -260,7 +260,10 @@ export class GameService {
     if (!updatedState) return;
 
     // Check if round is over
-    await this.checkRoundEnd(request.game_id, state.round_number);
+    await this.checkRoundEnd(request.game_id, updatedState.round_number);
+
+    // Reload game data to get latest status after potential round end
+    await this.loadGameData(request.game_id);
 
     // If round didn't end, proceed to next turn
     const game = this.currentGame();
