@@ -278,9 +278,13 @@ export class GameService {
     // Reload game data to get latest status after potential round end
     await this.loadGameData(request.game_id);
 
-    // If round didn't end, proceed to next turn
+    // Check if round ended (new round started or game finished)
+    const currentState = this.gameState();
     const game = this.currentGame();
-    if (game?.status === 'in_progress') {
+
+    // Only advance turn if we're still in the same round
+    if (game?.status === 'in_progress' &&
+        currentState?.round_number === updatedState.round_number) {
       await this.nextTurn(updatedState);
       // Reload game data to update UI with new turn
       await this.loadGameData(request.game_id);
