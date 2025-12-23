@@ -622,24 +622,43 @@ export class GameService {
         if (payload.new) {
           this.currentGame.set(payload.new as Game);
         }
-      }
+      },
+      `id=eq.${gameId}`
     );
 
     // Subscribe to other tables too
-    this.supabase.subscribe(`players:${gameId}`, '*', 'game_players', (payload) => {
-      console.log('👥 Player update received:', payload);
-      this.loadGameData(gameId);
-    });
+    this.supabase.subscribe(
+      `players:${gameId}`,
+      '*',
+      'game_players',
+      (payload) => {
+        console.log('👥 Player update received:', payload);
+        this.loadGameData(gameId);
+      },
+      `game_id=eq.${gameId}`
+    );
 
-    this.supabase.subscribe(`state:${gameId}`, '*', 'game_state', () => {
-      console.log('🎲 Game state update received');
-      this.loadGameData(gameId);
-    });
+    this.supabase.subscribe(
+      `state:${gameId}`,
+      '*',
+      'game_state',
+      () => {
+        console.log('🎲 Game state update received');
+        this.loadGameData(gameId);
+      },
+      `game_id=eq.${gameId}`
+    );
 
-    this.supabase.subscribe(`actions:${gameId}`, '*', 'game_actions', () => {
-      console.log('⚡ Game action received');
-      this.loadGameData(gameId);
-    });
+    this.supabase.subscribe(
+      `actions:${gameId}`,
+      '*',
+      'game_actions',
+      () => {
+        console.log('⚡ Game action received');
+        this.loadGameData(gameId);
+      },
+      `game_id=eq.${gameId}`
+    );
   }
 
   unsubscribe(): void {
