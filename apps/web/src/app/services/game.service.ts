@@ -557,6 +557,7 @@ export class GameService {
   }
 
   async loadGameData(gameId: string): Promise<void> {
+    console.log('📊 Loading game data for:', gameId);
     const supabaseClient = this.supabase.getClient();
     const playerId = this.supabase.getCurrentPlayerId();
 
@@ -567,7 +568,10 @@ export class GameService {
       .eq('game_id', gameId)
       .order('join_order');
 
-    if (players) this.players.set(players);
+    if (players) {
+      console.log('✅ Players loaded:', players.length, players);
+      this.players.set(players);
+    }
 
     // Load game state
     const { data: gameState } = await supabaseClient
@@ -607,11 +611,14 @@ export class GameService {
   subscribeToGame(gameId: string): void {
     const playerId = this.supabase.getCurrentPlayerId();
 
+    console.log('🔔 Subscribing to game updates:', gameId);
+
     this.realtimeChannel = this.supabase.subscribe(
       `game:${gameId}`,
       '*',
       'games',
       (payload) => {
+        console.log('🎮 Game update received:', payload);
         if (payload.new) {
           this.currentGame.set(payload.new as Game);
         }
@@ -619,15 +626,18 @@ export class GameService {
     );
 
     // Subscribe to other tables too
-    this.supabase.subscribe(`players:${gameId}`, '*', 'game_players', () => {
+    this.supabase.subscribe(`players:${gameId}`, '*', 'game_players', (payload) => {
+      console.log('👥 Player update received:', payload);
       this.loadGameData(gameId);
     });
 
     this.supabase.subscribe(`state:${gameId}`, '*', 'game_state', () => {
+      console.log('🎲 Game state update received');
       this.loadGameData(gameId);
     });
 
     this.supabase.subscribe(`actions:${gameId}`, '*', 'game_actions', () => {
+      console.log('⚡ Game action received');
       this.loadGameData(gameId);
     });
   }
