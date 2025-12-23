@@ -27,6 +27,7 @@ export class GameService {
 
   private realtimeChannel: RealtimeChannel | null = null;
   private lastPriestReveal: { targetId: string; card: CardType } | null = null;
+  private lastPrinceDiscard: CardType | null = null;
 
   constructor(private supabase: SupabaseService) {}
 
@@ -233,7 +234,12 @@ export class GameService {
       .eq('id', updatedHand.id);
 
     // Add to discard pile (using updated state to preserve cards added by effects)
-    const newDiscard = [...stateAfterEffect.discard_pile, request.card];
+    // For Prince, add Prince first, then the card it forced to discard
+    let newDiscard = [...stateAfterEffect.discard_pile, request.card];
+    if (this.lastPrinceDiscard) {
+      newDiscard.push(this.lastPrinceDiscard);
+      this.lastPrinceDiscard = null;
+    }
     await supabaseClient
       .from('game_state')
       .update({ discard_pile: newDiscard })
@@ -451,12 +457,9 @@ export class GameService {
       discardedCard = targetHand.cards[0];
     }
 
-    // Add discarded card to discard pile
-    const newDiscardPile = [...state.discard_pile, discardedCard];
-    await supabaseClient
-      .from('game_state')
-      .update({ discard_pile: newDiscardPile })
-      .eq('id', state.id);
+    // Store discarded card to be added to discard pile after Prince
+    // (Prince should be first in discard pile, then the card it forced to discard)
+    this.lastPrinceDiscard = discardedCard;
 
     // If Princess was discarded, eliminate the player
     if (discardedCard === 'Princess') {
