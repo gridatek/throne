@@ -786,6 +786,17 @@ export class GameService {
     const supabaseClient = this.supabase.getClient();
     const playerId = this.supabase.getCurrentPlayerId();
 
+    // Load game
+    const { data: game } = await supabaseClient
+      .from('games')
+      .select()
+      .eq('id', gameId)
+      .single();
+
+    if (game) {
+      this.currentGame.set(game);
+    }
+
     // Load players
     const { data: players } = await supabaseClient
       .from('game_players')
