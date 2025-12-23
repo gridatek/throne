@@ -595,9 +595,16 @@ export class GameService {
         .order('join_order');
 
       if (players) {
-        await this.initializeRound(gameId, roundNumber + 1, players.map(p => p.player_id));
-        // Draw card for first player of new round
-        await this.drawCardForPlayer(gameId, roundNumber + 1, players[0].player_id);
+        // Reorder players so the winner goes first
+        const winnerIndex = players.findIndex(p => p.player_id === winnerId);
+        const reorderedPlayers = [
+          ...players.slice(winnerIndex),
+          ...players.slice(0, winnerIndex)
+        ];
+
+        await this.initializeRound(gameId, roundNumber + 1, reorderedPlayers.map(p => p.player_id));
+        // Draw card for winner (who starts the new round)
+        await this.drawCardForPlayer(gameId, roundNumber + 1, winnerId);
       }
     }
   }
