@@ -556,7 +556,7 @@ export class GameService {
     });
   }
 
-  private async loadGameData(gameId: string): Promise<void> {
+  async loadGameData(gameId: string): Promise<void> {
     const supabaseClient = this.supabase.getClient();
     const playerId = this.supabase.getCurrentPlayerId();
 
@@ -604,7 +604,7 @@ export class GameService {
     if (actions) this.recentActions.set(actions);
   }
 
-  private subscribeToGame(gameId: string): void {
+  subscribeToGame(gameId: string): void {
     const playerId = this.supabase.getCurrentPlayerId();
 
     this.realtimeChannel = this.supabase.subscribe(

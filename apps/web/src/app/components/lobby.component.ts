@@ -208,19 +208,28 @@ export class LobbyComponent implements OnInit, OnDestroy {
     return this.gameService.players;
   }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     this.gameId = this.route.snapshot.paramMap.get('id');
+
+    if (!this.gameId) {
+      this.router.navigate(['/']);
+      return;
+    }
+
+    // Load game data and subscribe to real-time updates
+    try {
+      await this.gameService.loadGameData(this.gameId);
+      this.gameService.subscribeToGame(this.gameId);
+    } catch (err) {
+      console.error('Failed to load lobby data:', err);
+      this.error.set('Failed to load game data');
+    }
 
     // Check if game is already in progress
     const game = this.game();
     if (game?.status === 'in_progress') {
       this.router.navigate(['/game', this.gameId]);
     }
-
-    // Listen for game status changes
-    const gameSubscription = this.game;
-    // In a real app, you'd use effect() or subscribe to signal changes
-    // For now, we rely on the real-time updates from the service
   }
 
   ngOnDestroy(): void {
