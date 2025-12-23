@@ -362,7 +362,7 @@ export class GameComponent implements OnInit, OnDestroy {
   }
 
   async drawCard(): Promise<void> {
-    if (!this.gameId || !this.isMyTurn() || this.hasDrawn()) return;
+    if (!this.gameId || !this.isMyTurn() || this.hasDrawn() || this.drawing()) return;
 
     this.drawing.set(true);
     this.error.set('');
