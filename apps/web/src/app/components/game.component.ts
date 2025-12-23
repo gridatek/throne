@@ -492,23 +492,72 @@ export class GameComponent implements OnInit, OnDestroy {
   }
 
   formatAction(action: any): string {
-    let text = `Played ${action.card_played}`;
-    if (action.target_player_id) {
-      text += ` on ${this.getPlayerName(action.target_player_id)}`;
-    }
-
-    // Show if target was protected
-    if (action.details?.target_protected) {
-      text += ` - No effect (protected)`;
-    }
-
-    // Show revealed card for Priest (only to the player who played it)
+    const playerName = this.getPlayerName(action.player_id);
+    const targetName = action.target_player_id ? this.getPlayerName(action.target_player_id) : '';
     const myId = this.supabaseService.getCurrentPlayerId();
-    if (action.card_played === 'Priest' && action.player_id === myId && action.details?.revealed_card) {
-      text += ` - Saw: ${action.details.revealed_card}`;
-    }
 
-    return text;
+    switch (action.card_played) {
+      case 'Guard':
+        if (action.details?.target_protected) {
+          return `${playerName} played Guard on ${targetName} - No effect (protected)`;
+        }
+        const guess = action.details?.guess_card || 'Unknown';
+        return `${playerName} played Guard on ${targetName}, guessed ${guess}`;
+
+      case 'Priest':
+        if (action.details?.target_protected) {
+          return `${playerName} played Priest on ${targetName} - No effect (protected)`;
+        }
+        if (action.player_id === myId && action.details?.revealed_card) {
+          return `${playerName} played Priest on ${targetName} - Saw: ${action.details.revealed_card}`;
+        }
+        return `${playerName} played Priest on ${targetName}`;
+
+      case 'Baron':
+        if (action.details?.target_protected) {
+          return `${playerName} played Baron on ${targetName} - No effect (protected)`;
+        }
+        if (action.details?.baron_result) {
+          const result = action.details.baron_result;
+          const myCard = result.myCard;
+          const theirCard = result.theirCard;
+          if (result.winner === null) {
+            return `${playerName} (${myCard}) vs ${targetName} (${theirCard}) - Tie!`;
+          } else {
+            const winnerName = this.getPlayerName(result.winner);
+            const loserName = result.winner === action.player_id ? targetName : playerName;
+            return `${playerName} (${myCard}) vs ${targetName} (${theirCard}) - ${winnerName} wins, ${loserName} eliminated`;
+          }
+        }
+        return `${playerName} played Baron on ${targetName}`;
+
+      case 'Handmaid':
+        return `${playerName} played Handmaid - Protected until next turn 🛡️`;
+
+      case 'Prince':
+        if (action.details?.target_protected) {
+          return `${playerName} played Prince on ${targetName} - No effect (protected)`;
+        }
+        if (action.player_id === action.target_player_id) {
+          return `${playerName} played Prince on themselves`;
+        }
+        return `${playerName} played Prince on ${targetName}`;
+
+      case 'King':
+        if (action.details?.target_protected) {
+          return `${playerName} played King on ${targetName} - No effect (protected)`;
+        }
+        return `${playerName} played King on ${targetName} - Swapped hands`;
+
+      case 'Princess':
+        return `${playerName} played Princess - Eliminated! 💀`;
+
+      case 'Countess':
+        return `${playerName} played Countess`;
+
+      default:
+        return `${playerName} played ${action.card_played}`;
+    }
   }
 
   getWinnerName(): string {

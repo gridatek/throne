@@ -29,6 +29,7 @@ export class GameService {
   private lastPriestReveal: { targetId: string; card: CardType } | null = null;
   private lastPrinceDiscard: CardType | null = null;
   private targetWasProtected: boolean = false;
+  private lastBaronResult: { myCard: CardType; theirCard: CardType; winner: string | null } | null = null;
 
   constructor(private supabase: SupabaseService) {}
 
@@ -260,6 +261,9 @@ export class GameService {
     if (this.targetWasProtected) {
       actionDetails.target_protected = true;
     }
+    if (this.lastBaronResult && request.card === 'Baron') {
+      actionDetails.baron_result = this.lastBaronResult;
+    }
 
     // Log action
     await supabaseClient
@@ -275,8 +279,9 @@ export class GameService {
         details: actionDetails
       });
 
-    // Clear priest reveal after logging
+    // Clear temp data after logging
     this.lastPriestReveal = null;
+    this.lastBaronResult = null;
 
     // Reload game state to get latest data (might have changed due to card effects)
     const { data: updatedState } = await supabaseClient
@@ -462,12 +467,22 @@ export class GameService {
     const myValue = CARD_VALUES[myCardToCompare as CardType];
     const theirValue = CARD_VALUES[theirCardToCompare as CardType];
 
+    // Store result for action logging
+    let winner: string | null = null;
     if (myValue < theirValue) {
+      winner = targetId;
       await this.eliminatePlayer(playerId, state.game_id);
     } else if (theirValue < myValue) {
+      winner = playerId;
       await this.eliminatePlayer(targetId, state.game_id);
     }
-    // If equal, no one is eliminated
+    // If equal, no one is eliminated (winner stays null)
+
+    this.lastBaronResult = {
+      myCard: myCardToCompare,
+      theirCard: theirCardToCompare,
+      winner
+    };
   }
 
   private async handleHandmaid(state: GameState): Promise<void> {
