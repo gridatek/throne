@@ -212,11 +212,24 @@ export class GameService {
         details: { guess_card: request.guess_card }
       });
 
+    // Reload game state to get latest data (might have changed due to card effects)
+    const { data: updatedState } = await supabaseClient
+      .from('game_state')
+      .select()
+      .eq('game_id', request.game_id)
+      .eq('round_number', state.round_number)
+      .single();
+
+    if (!updatedState) return;
+
     // Check if round is over
     await this.checkRoundEnd(request.game_id, state.round_number);
 
-    // Next turn
-    await this.nextTurn(state);
+    // If round didn't end, proceed to next turn
+    const game = this.currentGame();
+    if (game?.status === 'in_progress') {
+      await this.nextTurn(updatedState);
+    }
   }
 
   private async processCardEffect(request: PlayCardRequest, state: GameState): Promise<void> {
@@ -486,7 +499,14 @@ export class GameService {
     if (activePlayers.length === 1) {
       winnerId = activePlayers[0].player_id;
     } else {
-      const state = this.gameState();
+      // Reload state from database to get latest deck size
+      const { data: state } = await supabaseClient
+        .from('game_state')
+        .select()
+        .eq('game_id', gameId)
+        .eq('round_number', roundNumber)
+        .maybeSingle();
+
       if (state && state.deck.length === 0) {
         // Compare hands
         winnerId = await this.determineRoundWinner(gameId, roundNumber, activePlayers.map(p => p.player_id));
