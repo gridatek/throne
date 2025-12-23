@@ -61,8 +61,10 @@ Tests run automatically on GitHub Actions for:
 The CI workflow:
 1. Installs dependencies
 2. Starts Supabase
-3. Runs E2E tests with `e2e-ci` target
+3. Runs E2E tests with `npx nx e2e web-e2e`
 4. Uploads test results and screenshots
+
+**Note**: We use the regular `e2e` target in CI instead of `e2e-ci` because the atomized CI target requires Nx Cloud subscription.
 
 ## Debugging Failed Tests
 
