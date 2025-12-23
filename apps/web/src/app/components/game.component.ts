@@ -24,7 +24,7 @@ import { CardType, GamePlayer } from '../models/game.models';
 
             <div class="text-right">
               <p class="text-sm text-gray-600">Deck</p>
-              <p class="text-2xl font-bold text-purple-600">{{ gameState()?.deck.length || 0 }} 🃏</p>
+              <p class="text-2xl font-bold text-purple-600">{{ gameState()?.deck?.length || 0 }} 🃏</p>
             </div>
           </div>
         </div>
@@ -215,7 +215,7 @@ import { CardType, GamePlayer } from '../models/game.models';
           </div>
         }
 
-        @if (gameOver()) {
+        @if (gameOver) {
           <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
               <h2 class="text-3xl font-bold text-purple-900 mb-4">🎉 Game Over!</h2>
