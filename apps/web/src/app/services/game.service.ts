@@ -205,7 +205,7 @@ export class GameService {
     if (!updatedHand) throw new Error('Hand not found after card effect');
 
     // Remove card from hand
-    const newCards = updatedHand.cards.filter(c => c !== request.card);
+    const newCards = updatedHand.cards.filter((c: CardType) => c !== request.card);
 
     // Update player hand
     await supabaseClient
