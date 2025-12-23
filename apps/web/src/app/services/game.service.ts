@@ -221,6 +221,7 @@ export class GameService {
 
   private async processCardEffect(request: PlayCardRequest, state: GameState): Promise<void> {
     const supabaseClient = this.supabase.getClient();
+    const playerId = this.supabase.getCurrentPlayerId();
 
     switch (request.card) {
       case 'Guard':
@@ -248,6 +249,13 @@ export class GameService {
         if (request.target_player_id) {
           await this.handleKing(request.target_player_id, state);
         }
+        break;
+      case 'Princess':
+        // Playing Princess eliminates you immediately
+        await this.eliminatePlayer(playerId, state.game_id);
+        break;
+      case 'Countess':
+        // Countess has no special effect when played
         break;
     }
   }

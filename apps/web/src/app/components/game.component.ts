@@ -320,7 +320,7 @@ export class GameComponent implements OnInit {
 
   needsTarget(): boolean {
     const card = this.selectedCard();
-    return card !== 'Handmaid' && card !== 'Countess';
+    return card !== 'Handmaid' && card !== 'Countess' && card !== 'Princess';
   }
 
   getValidTargets(): GamePlayer[] {
