@@ -88,6 +88,45 @@ jobs:
             exit 1
           }
 
+      - name: Verify migrations applied (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          echo "Verifying database migrations were applied..."
+
+          # Check if games table exists via REST API
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" \
+            "http://127.0.0.1:54321/rest/v1/games")
+
+          if [ "$response" = "200" ]; then
+            echo "✅ Migrations verified: games table exists"
+          else
+            echo "❌ Migration check failed: games table not found (HTTP $response)"
+            echo "Checking database tables..."
+            docker exec supabase_db_local psql -U postgres -d postgres -c "\dt public.*" || true
+            exit 1
+          fi
+
+      - name: Verify migrations applied (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "Verifying database migrations were applied..."
+
+          $headers = @{
+            "apikey" = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
+          }
+
+          try {
+            $response = Invoke-WebRequest -Uri "http://127.0.0.1:54321/rest/v1/games" -Headers $headers -UseBasicParsing -ErrorAction Stop
+            Write-Host "✅ Migrations verified: games table exists"
+          } catch {
+            Write-Host "❌ Migration check failed: games table not found"
+            Write-Host "Status Code: $($_.Exception.Response.StatusCode.value__)"
+            docker ps -a
+            exit 1
+          }
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps ${{ matrix.browser }}
 

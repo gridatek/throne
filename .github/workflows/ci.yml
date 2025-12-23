@@ -56,6 +56,24 @@ jobs:
 
           echo "Supabase is ready!"
 
+      - name: Verify migrations applied
+        run: |
+          echo "Verifying database migrations were applied..."
+
+          # Check if games table exists via REST API
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" \
+            "http://127.0.0.1:54321/rest/v1/games")
+
+          if [ "$response" = "200" ]; then
+            echo "✅ Migrations verified: games table exists"
+          else
+            echo "❌ Migration check failed: games table not found (HTTP $response)"
+            echo "Checking database tables..."
+            docker exec supabase_db_local psql -U postgres -d postgres -c "\dt public.*" || true
+            exit 1
+          fi
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
