@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, feature/**]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  e2e-tests:
+    name: Run E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase
+        run: npx nx run supabase:start
+
+      - name: Wait for Supabase to be ready
+        run: |
+          echo "Waiting for Supabase API to be ready..."
+          sleep 10
+
+          # Check if Supabase REST API is responding
+          max_attempts=20
+          attempt=0
+          until curl -f http://127.0.0.1:54321/rest/v1/ 2>/dev/null || [ $attempt -eq $max_attempts ]; do
+            echo "Attempt $((attempt+1))/$max_attempts - Waiting for Supabase API..."
+            sleep 3
+            attempt=$((attempt+1))
+          done
+
+          if [ $attempt -eq $max_attempts ]; then
+            echo "Supabase API check failed"
+            echo "Checking docker containers..."
+            docker ps -a
+            exit 1
+          fi
+
+          echo "Supabase is ready!"
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests (Chromium only)
+        run: npx nx e2e web-e2e -- --project=chromium --workers=4
+        env:
+          CI: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            dist/.playwright/apps/web-e2e/playwright-report/
+            apps/web-e2e/playwright-report/
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Upload test screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-screenshots
+          path: |
+            dist/.playwright/apps/web-e2e/test-output/
+            apps/web-e2e/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Stop Supabase
+        if: always()
+        run: npx nx run supabase:stop || true
