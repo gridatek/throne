@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -240,7 +240,7 @@ import { CardType, GamePlayer } from '../models/game.models';
     }
   `]
 })
-export class GameComponent implements OnInit {
+export class GameComponent implements OnInit, OnDestroy {
   selectedCard = signal<CardType | null>(null);
   targetPlayer = signal<string | null>(null);
   guessCard = signal<CardType | null>(null);
@@ -280,8 +280,33 @@ export class GameComponent implements OnInit {
     return this.game()?.status === 'finished';
   }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     this.gameId = this.route.snapshot.paramMap.get('id');
+
+    if (!this.gameId) {
+      this.router.navigate(['/']);
+      return;
+    }
+
+    // Load game data and subscribe to real-time updates
+    try {
+      await this.gameService.loadGameData(this.gameId);
+      this.gameService.subscribeToGame(this.gameId);
+    } catch (err) {
+      console.error('Failed to load game data:', err);
+      this.error.set('Failed to load game data');
+    }
+
+    // Check if game is finished
+    const game = this.game();
+    if (game?.status === 'waiting') {
+      // Game hasn't started yet, go back to lobby
+      this.router.navigate(['/lobby', this.gameId]);
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.gameService.unsubscribe();
   }
 
   isMyTurn(): boolean {
