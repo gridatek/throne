@@ -257,3 +257,15 @@ $$ LANGUAGE plpgsql;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon, authenticated, service_role;
 GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO postgres, anon, authenticated, service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres, anon, authenticated, service_role;
+
+-- Enable Realtime for tables
+ALTER TABLE games REPLICA IDENTITY FULL;
+ALTER TABLE game_players REPLICA IDENTITY FULL;
+ALTER TABLE game_state REPLICA IDENTITY FULL;
+ALTER TABLE game_actions REPLICA IDENTITY FULL;
+
+-- Add tables to realtime publication
+ALTER PUBLICATION supabase_realtime ADD TABLE games;
+ALTER PUBLICATION supabase_realtime ADD TABLE game_players;
+ALTER PUBLICATION supabase_realtime ADD TABLE game_state;
+ALTER PUBLICATION supabase_realtime ADD TABLE game_actions;
