@@ -642,11 +642,9 @@ export class GameService {
       .eq('round_number', roundNumber)
       .single();
 
-    if (!state || state.deck.length === 0) return;
-
-    // Draw top card from deck
-    const drawnCard = state.deck[0];
-    const newDeck = state.deck.slice(1);
+    if (!state || state.deck.length === 0) {
+      throw new Error('No cards left to draw');
+    }
 
     // Get player's hand
     const { data: playerHand } = await supabaseClient
@@ -657,7 +655,18 @@ export class GameService {
       .eq('player_id', playerId)
       .single();
 
-    if (!playerHand) return;
+    if (!playerHand) {
+      throw new Error('Player hand not found');
+    }
+
+    // Prevent drawing if already have 2+ cards
+    if (playerHand.cards.length >= 2) {
+      throw new Error('You have already drawn this turn');
+    }
+
+    // Draw top card from deck
+    const drawnCard = state.deck[0];
+    const newDeck = state.deck.slice(1);
 
     // Add card to hand
     await supabaseClient
