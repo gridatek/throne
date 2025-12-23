@@ -52,7 +52,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run E2E tests
-        run: npx nx run web-e2e:e2e-ci
+        run: npx nx e2e web-e2e
         env:
           CI: true
 
