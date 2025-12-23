@@ -36,14 +36,14 @@ export class GameService {
     // Generate room code
     const roomCode = this.generateRoomCode();
 
-    // Create game
+    // Create game (always 4 players max for standard Love Letter)
     const { data: game, error: gameError } = await supabaseClient
       .from('games')
       .insert({
         room_code: roomCode,
-        max_players: request.max_players || 4,
+        max_players: 4,
         created_by: playerId,
-        winning_tokens: this.getWinningTokens(request.max_players || 4)
+        winning_tokens: this.getWinningTokens(4)
       })
       .select()
       .single();
@@ -220,7 +220,6 @@ export class GameService {
   }
 
   private async processCardEffect(request: PlayCardRequest, state: GameState): Promise<void> {
-    const supabaseClient = this.supabase.getClient();
     const playerId = this.supabase.getCurrentPlayerId();
 
     switch (request.card) {
@@ -666,8 +665,6 @@ export class GameService {
   }
 
   subscribeToGame(gameId: string): void {
-    const playerId = this.supabase.getCurrentPlayerId();
-
     console.log('🔔 Subscribing to game updates:', gameId);
 
     this.realtimeChannel = this.supabase.subscribe(
@@ -734,9 +731,9 @@ export class GameService {
   }
 
   private getWinningTokens(playerCount: number): number {
+    // Standard Love Letter rules for 2-4 players
     if (playerCount === 2) return 7;
     if (playerCount === 3) return 5;
-    if (playerCount === 4) return 4;
-    return 3; // 5-8 players
+    return 4; // 4 players
   }
 }
