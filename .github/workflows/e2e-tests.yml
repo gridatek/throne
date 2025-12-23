@@ -30,34 +30,37 @@ jobs:
         with:
           version: latest
 
-      - name: Build and start Supabase
-        run: |
-          npx nx run supabase:build
-          npx nx run supabase:start
+      - name: Start Supabase
+        run: npx nx run supabase:start
 
       - name: Wait for Supabase to be ready
         run: |
           echo "Waiting for Supabase services to be ready..."
-          sleep 10
+          sleep 15
 
           # Check if Supabase is running
           max_attempts=30
           attempt=0
-          until curl -f http://localhost:54321/health || [ $attempt -eq $max_attempts ]; do
+          until curl -f http://localhost:54321/health 2>/dev/null || [ $attempt -eq $max_attempts ]; do
             echo "Attempt $((attempt+1))/$max_attempts - Waiting for Supabase..."
             sleep 2
             attempt=$((attempt+1))
           done
 
           if [ $attempt -eq $max_attempts ]; then
-            echo "Supabase failed to start"
+            echo "Supabase health check failed"
+            echo "Checking Supabase logs..."
+            docker logs supabase_db_supabase-production 2>&1 | tail -50 || true
             exit 1
           fi
 
           echo "Supabase is ready!"
 
-      - name: Verify Supabase is running
-        run: npx nx run supabase:status
+      - name: Verify Supabase status
+        run: |
+          echo "Checking Supabase status..."
+          cd apps/supabase/production
+          supabase status || true
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
@@ -76,6 +79,7 @@ jobs:
             dist/.playwright/apps/web-e2e/playwright-report/
             apps/web-e2e/playwright-report/
           retention-days: 30
+          if-no-files-found: ignore
 
       - name: Upload test screenshots
         if: failure()
@@ -86,6 +90,7 @@ jobs:
             dist/.playwright/apps/web-e2e/test-output/
             apps/web-e2e/test-results/
           retention-days: 7
+          if-no-files-found: ignore
 
       - name: Stop Supabase
         if: always()
