@@ -291,12 +291,23 @@ export class GameService {
     const currentState = this.gameState();
     const game = this.currentGame();
 
+    console.log('🔄 Turn advancement check:', {
+      gameStatus: game?.status,
+      currentRound: currentState?.round_number,
+      updatedRound: updatedState.round_number,
+      currentTurn: currentState?.current_turn_player_id
+    });
+
     // Only advance turn if we're still in the same round
     if (game?.status === 'in_progress' &&
         currentState?.round_number === updatedState.round_number) {
+      console.log('⏭️ Advancing to next turn...');
       await this.nextTurn(updatedState);
       // Reload game data to update UI with new turn
       await this.loadGameData(request.game_id);
+      console.log('✅ Turn advanced to:', this.gameState()?.current_turn_player_id);
+    } else {
+      console.log('⏸️ Not advancing turn - conditions not met');
     }
   }
 
