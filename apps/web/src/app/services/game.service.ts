@@ -335,7 +335,7 @@ export class GameService {
     let discardedCard: CardType;
     if (targetId === playerId && targetHand.cards.length === 2) {
       // If targeting yourself and you have 2 cards, discard the one you're NOT playing (the non-Prince)
-      discardedCard = targetHand.cards.find(c => c !== 'Prince') || targetHand.cards[0];
+      discardedCard = targetHand.cards.find((c: CardType) => c !== 'Prince') || targetHand.cards[0];
     } else {
       // Otherwise discard the only card they have
       discardedCard = targetHand.cards[0];
