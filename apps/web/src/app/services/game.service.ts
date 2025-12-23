@@ -193,14 +193,25 @@ export class GameService {
     // Process card effect
     await this.processCardEffect(request, state);
 
+    // Re-fetch hand after card effect (effects like King modify the hand)
+    const { data: updatedHand } = await supabaseClient
+      .from('player_hands')
+      .select()
+      .eq('game_id', request.game_id)
+      .eq('round_number', state.round_number)
+      .eq('player_id', playerId)
+      .single();
+
+    if (!updatedHand) throw new Error('Hand not found after card effect');
+
     // Remove card from hand
-    const newCards = hand.cards.filter(c => c !== request.card);
+    const newCards = updatedHand.cards.filter(c => c !== request.card);
 
     // Update player hand
     await supabaseClient
       .from('player_hands')
       .update({ cards: newCards })
-      .eq('id', hand.id);
+      .eq('id', updatedHand.id);
 
     // Add to discard pile
     const newDiscard = [...state.discard_pile, request.card];
