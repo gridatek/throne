@@ -335,6 +335,12 @@ export class GameComponent implements OnInit, OnDestroy {
     this.selectedCard.set(card);
     this.targetPlayer.set(null);
     this.guessCard.set(null);
+
+    // Auto-select target if there's only one valid option
+    const validTargets = this.getValidTargets();
+    if (validTargets.length === 1) {
+      this.targetPlayer.set(validTargets[0].player_id);
+    }
   }
 
   cancelSelection(): void {
