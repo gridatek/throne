@@ -10,7 +10,6 @@ test.describe('Love Letter Game', () => {
 
       // Check for create game form
       await expect(page.locator('input[placeholder*="name"]')).toBeVisible();
-      await expect(page.locator('select')).toBeVisible();
       await expect(page.locator('button:has-text("Create Game")')).toBeVisible();
     });
 
@@ -47,10 +46,7 @@ test.describe('Love Letter Game', () => {
       // Fill in player name
       await page.locator('input[placeholder*="name"]').fill('Player 1');
 
-      // Select max players
-      await page.locator('select').selectOption('4');
-
-      // Create game
+      // Create game (defaults to 8 max players)
       await page.locator('button:has-text("Create Game")').click();
 
       // Wait for navigation to lobby
@@ -72,16 +68,15 @@ test.describe('Love Letter Game', () => {
     test('should display correct game settings in lobby', async ({ page }) => {
       await page.goto('/');
 
-      // Create game with 6 players
+      // Create game (defaults to 8 max players)
       await page.locator('input[placeholder*="name"]').fill('Host Player');
-      await page.locator('select').selectOption('6');
       await page.locator('button:has-text("Create Game")').click();
 
       await page.waitForURL(/\/lobby\/.+/);
 
       // Check max players
       await expect(page.locator('text=Max Players')).toBeVisible();
-      await expect(page.locator('text=6').first()).toBeVisible();
+      await expect(page.locator('text=8').first()).toBeVisible();
 
       // Check tokens to win
       await expect(page.locator('text=Tokens to Win')).toBeVisible();

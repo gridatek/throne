@@ -35,22 +35,6 @@ import { GameService } from '../services/game.service';
                 />
               </div>
 
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Max Players</label>
-                <select
-                  [(ngModel)]="maxPlayers"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                >
-                  <option [value]="2">2 Players</option>
-                  <option [value]="3">3 Players</option>
-                  <option [value]="4">4 Players</option>
-                  <option [value]="5">5 Players</option>
-                  <option [value]="6">6 Players</option>
-                  <option [value]="7">7 Players</option>
-                  <option [value]="8">8 Players</option>
-                </select>
-              </div>
-
               <button
                 (click)="createGame()"
                 [disabled]="!playerName() || creating()"
@@ -157,7 +141,6 @@ import { GameService } from '../services/game.service';
 })
 export class HomeComponent {
   playerName = signal('');
-  maxPlayers = signal(4);
   roomCode = signal('');
   showJoinForm = signal(false);
   creating = signal(false);
@@ -178,7 +161,7 @@ export class HomeComponent {
     try {
       const game = await this.gameService.createGame({
         player_name: this.playerName(),
-        max_players: this.maxPlayers()
+        max_players: 8 // Support 2-8 players flexibly
       });
 
       // Navigate to lobby
