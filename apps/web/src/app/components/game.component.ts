@@ -487,6 +487,13 @@ export class GameComponent implements OnInit, OnDestroy {
     if (action.target_player_id) {
       text += ` on ${this.getPlayerName(action.target_player_id)}`;
     }
+
+    // Show revealed card for Priest (only to the player who played it)
+    const myId = this.supabaseService.getCurrentPlayerId();
+    if (action.card_played === 'Priest' && action.player_id === myId && action.details?.revealed_card) {
+      text += ` - Saw: ${action.details.revealed_card}`;
+    }
+
     return text;
   }
 

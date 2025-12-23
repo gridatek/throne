@@ -26,6 +26,7 @@ export class GameService {
   recentActions = signal<GameAction[]>([]);
 
   private realtimeChannel: RealtimeChannel | null = null;
+  private lastPriestReveal: { targetId: string; card: CardType } | null = null;
 
   constructor(private supabase: SupabaseService) {}
 
@@ -235,6 +236,15 @@ export class GameService {
       .update({ discard_pile: newDiscard })
       .eq('id', state.id);
 
+    // Prepare action details
+    const actionDetails: any = {};
+    if (request.guess_card) {
+      actionDetails.guess_card = request.guess_card;
+    }
+    if (this.lastPriestReveal && request.card === 'Priest') {
+      actionDetails.revealed_card = this.lastPriestReveal.card;
+    }
+
     // Log action
     await supabaseClient
       .from('game_actions')
@@ -246,8 +256,11 @@ export class GameService {
         action_type: 'play_card',
         card_played: request.card,
         target_player_id: request.target_player_id,
-        details: { guess_card: request.guess_card }
+        details: actionDetails
       });
+
+    // Clear priest reveal after logging
+    this.lastPriestReveal = null;
 
     // Reload game state to get latest data (might have changed due to card effects)
     const { data: updatedState } = await supabaseClient
@@ -282,7 +295,9 @@ export class GameService {
         }
         break;
       case 'Priest':
-        // Just reveals card to player (handled in UI)
+        if (request.target_player_id) {
+          await this.handlePriest(request.target_player_id, state);
+        }
         break;
       case 'Baron':
         if (request.target_player_id) {
@@ -328,6 +343,32 @@ export class GameService {
       // Correct guess - eliminate target
       await this.eliminatePlayer(targetId, state.game_id);
     }
+  }
+
+  private async handlePriest(targetId: string, state: GameState): Promise<void> {
+    const supabaseClient = this.supabase.getClient();
+
+    // Get target's hand
+    const { data: targetHand } = await supabaseClient
+      .from('player_hands')
+      .select()
+      .eq('game_id', state.game_id)
+      .eq('round_number', state.round_number)
+      .eq('player_id', targetId)
+      .single();
+
+    if (!targetHand || targetHand.cards.length === 0) return;
+
+    // Store the revealed card so it can be shown to the player
+    // The card will be displayed via the game action
+    const revealedCard = targetHand.cards[0];
+
+    // Update the action details to include the revealed card
+    // (This will be picked up when logging the action in playCard)
+    this.lastPriestReveal = {
+      targetId,
+      card: revealedCard
+    };
   }
 
   private async handleBaron(targetId: string, state: GameState): Promise<void> {
