@@ -33,6 +33,9 @@ jobs:
       - name: Start Supabase
         run: npx nx run supabase:start
 
+      - name: Apply migrations
+        run: npx nx run supabase:run-command --command="supabase db reset --no-confirm"
+
       - name: Wait for Supabase to be ready
         run: |
           echo "Waiting for Supabase API to be ready..."
