@@ -13,8 +13,9 @@ End-to-end tests for the Love Letter card game using Playwright.
 ### 1. Start Supabase
 
 ```bash
-cd apps/supabase
-supabase start
+# Build and start Supabase using Nx
+npx nx run supabase:build
+npx nx run supabase:start
 ```
 
 ### 2. Run E2E Tests
@@ -60,11 +61,14 @@ Tests run automatically on GitHub Actions for:
 
 The CI workflow:
 1. Installs dependencies
-2. Starts Supabase
-3. Runs E2E tests with `npx nx e2e web-e2e`
-4. Uploads test results and screenshots
+2. Builds Supabase project (`npx nx run supabase:build`)
+3. Starts Supabase (`npx nx run supabase:start`)
+4. Waits for services to be ready
+5. Runs E2E tests with `npx nx e2e web-e2e`
+6. Uploads test results and screenshots
+7. Stops Supabase
 
-**Note**: We use the regular `e2e` target in CI instead of `e2e-ci` because the atomized CI target requires Nx Cloud subscription.
+**Note**: We use Nx commands for all Supabase operations and the regular `e2e` target (not `e2e-ci`) since atomized CI requires Nx Cloud subscription.
 
 ## Debugging Failed Tests
 

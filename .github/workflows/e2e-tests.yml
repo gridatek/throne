@@ -30,10 +30,10 @@ jobs:
         with:
           version: latest
 
-      - name: Start Supabase
+      - name: Build and start Supabase
         run: |
-          cd apps/supabase/production
-          supabase start
+          npx nx run supabase:build
+          npx nx run supabase:start
 
       - name: Wait for Supabase to be ready
         run: |
@@ -57,9 +57,7 @@ jobs:
           echo "Supabase is ready!"
 
       - name: Verify Supabase is running
-        run: |
-          cd apps/supabase/production
-          supabase status
+        run: npx nx run supabase:status
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
@@ -91,6 +89,4 @@ jobs:
 
       - name: Stop Supabase
         if: always()
-        run: |
-          cd apps/supabase/production
-          supabase stop || true
+        run: npx nx run supabase:stop || true

@@ -48,8 +48,9 @@ npm install
 1. **Start Supabase**
 
 ```bash
-cd apps/supabase
-supabase start
+# Build and start Supabase
+npx nx run supabase:build
+npx nx run supabase:start
 ```
 
 This will start:
@@ -209,12 +210,12 @@ npx nx lint web
 # Run tests
 npx nx e2e web-e2e
 
-# Supabase commands
-cd apps/supabase
-supabase start      # Start local instance
-supabase stop       # Stop local instance
-supabase status     # Check status
-supabase db reset   # Reset database
+# Supabase commands (via Nx)
+npx nx run supabase:build     # Build Supabase config
+npx nx run supabase:start     # Start local instance
+npx nx run supabase:stop      # Stop local instance
+npx nx run supabase:status    # Check status
+npx nx run supabase:db-reset  # Reset database
 ```
 
 ### Environment Variables
