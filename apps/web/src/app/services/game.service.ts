@@ -418,15 +418,25 @@ export class GameService {
 
     if (!myHand || !theirHand) return;
 
-    // Swap hands
+    // Get the card to swap (not the King being played)
+    const myCardToSwap = myHand.cards.length === 2
+      ? myHand.cards.find((c: CardType) => c !== 'King') || myHand.cards[0]
+      : myHand.cards[0];
+    const theirCardToSwap = theirHand.cards[0];
+
+    // Swap the cards
+    const myNewHand = myHand.cards.length === 2
+      ? ['King', theirCardToSwap] // Keep the King, get their card
+      : [theirCardToSwap];
+
     await supabaseClient
       .from('player_hands')
-      .update({ cards: theirHand.cards })
+      .update({ cards: myNewHand })
       .eq('id', myHand.id);
 
     await supabaseClient
       .from('player_hands')
-      .update({ cards: myHand.cards })
+      .update({ cards: [myCardToSwap] })
       .eq('id', theirHand.id);
   }
 
