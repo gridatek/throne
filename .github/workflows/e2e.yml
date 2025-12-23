@@ -1,16 +1,18 @@
-name: E2E Tests
+name: E2E Full Browser & Platform Tests
 
 on:
-  push:
-    branches: [main, develop, feature/**]
-  pull_request:
-    branches: [main, develop]
+  workflow_dispatch:
 
 jobs:
-  e2e-tests:
-    name: Run E2E Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+  e2e-full:
+    name: E2E (${{ matrix.browser }} on ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        browser: [chromium, firefox, webkit]
 
     steps:
       - name: Checkout code
@@ -33,7 +35,8 @@ jobs:
       - name: Start Supabase
         run: npx nx run supabase:start
 
-      - name: Wait for Supabase to be ready
+      - name: Wait for Supabase to be ready (Unix)
+        if: runner.os != 'Windows'
         run: |
           echo "Waiting for Supabase API to be ready..."
           sleep 10
@@ -56,11 +59,40 @@ jobs:
 
           echo "Supabase is ready!"
 
+      - name: Wait for Supabase to be ready (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "Waiting for Supabase API to be ready..."
+          Start-Sleep -Seconds 10
+
+          $maxAttempts = 20
+          $attempt = 0
+          $ready = $false
+
+          while (($attempt -lt $maxAttempts) -and (-not $ready)) {
+            try {
+              $response = Invoke-WebRequest -Uri "http://127.0.0.1:54321/rest/v1/" -UseBasicParsing -ErrorAction Stop
+              $ready = $true
+              Write-Host "Supabase is ready!"
+            } catch {
+              $attempt++
+              Write-Host "Attempt $attempt/$maxAttempts - Waiting for Supabase API..."
+              Start-Sleep -Seconds 3
+            }
+          }
+
+          if (-not $ready) {
+            Write-Host "Supabase API check failed"
+            docker ps -a
+            exit 1
+          }
+
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps ${{ matrix.browser }}
 
       - name: Run E2E tests
-        run: npx nx e2e web-e2e
+        run: npx nx e2e web-e2e -- --project=${{ matrix.browser }} --workers=4
         env:
           CI: true
 
@@ -68,7 +100,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.os }}-${{ matrix.browser }}
           path: |
             dist/.playwright/apps/web-e2e/playwright-report/
             apps/web-e2e/playwright-report/
@@ -79,7 +111,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-screenshots
+          name: playwright-screenshots-${{ matrix.os }}-${{ matrix.browser }}
           path: |
             dist/.playwright/apps/web-e2e/test-output/
             apps/web-e2e/test-results/
