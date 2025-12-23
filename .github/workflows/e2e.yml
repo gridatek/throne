@@ -36,7 +36,9 @@ jobs:
         run: npx nx run supabase:start
 
       - name: Apply migrations
-        run: npx nx run supabase:run-command --command="supabase db reset --no-confirm"
+        run: npx nx run supabase:run-command --command="supabase db reset"
+        env:
+          CI: true
 
       - name: Wait for Supabase to be ready (Unix)
         if: runner.os != 'Windows'
