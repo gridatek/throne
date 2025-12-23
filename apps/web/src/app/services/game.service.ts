@@ -183,6 +183,11 @@ export class GameService {
       throw new Error('Card not in hand');
     }
 
+    // Must draw before playing (should have 2 cards)
+    if (hand.cards.length < 2) {
+      throw new Error('You must draw a card before playing');
+    }
+
     // Countess rule: Must play Countess if you have King or Prince
     if (hand.cards.includes('Countess') &&
         (hand.cards.includes('King') || hand.cards.includes('Prince')) &&

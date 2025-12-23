@@ -100,7 +100,7 @@ import { CardType, GamePlayer } from '../models/game.models';
                   @for (card of myHand()!.cards; track $index) {
                     <app-card
                       [card]="card"
-                      [selectable]="isMyTurn() && !selectedCard() && canSelectCard(card)"
+                      [selectable]="isMyTurn() && hasDrawn() && !selectedCard() && canSelectCard(card)"
                       [selected]="selectedCard() === card"
                       (cardClick)="selectCard(card)"
                     />
