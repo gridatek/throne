@@ -68,22 +68,19 @@ import { SupabaseService } from '../services/supabase.service';
             <!-- Start Button (only for host) -->
             @if (isHost()) {
               <div class="mt-6">
-                @if (canStart()) {
-                  <button
-                    (click)="startGame()"
-                    [disabled]="starting()"
-                    class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-                  >
-                    @if (starting()) {
-                      <span>Starting...</span>
-                    } @else {
-                      <span>🚀 Start Game</span>
-                    }
-                  </button>
-                } @else {
-                  <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg text-sm text-center">
-                    Need at least 2 players to start
-                  </div>
+                <button
+                  (click)="startGame()"
+                  [disabled]="!canStart() || starting()"
+                  class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                >
+                  @if (starting()) {
+                    <span>Starting...</span>
+                  } @else {
+                    <span>🚀 Start Game</span>
+                  }
+                </button>
+                @if (!canStart()) {
+                  <p class="text-sm text-yellow-600 text-center mt-2">Need at least 2 players to start</p>
                 }
               </div>
             } @else {
