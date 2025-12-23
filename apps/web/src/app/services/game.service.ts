@@ -220,8 +220,11 @@ export class GameService {
 
     if (!stateAfterEffect) throw new Error('Game state not found after card effect');
 
-    // Remove card from hand
-    const newCards = updatedHand.cards.filter((c: CardType) => c !== request.card);
+    // Remove only ONE instance of the played card from hand
+    const cardIndex = updatedHand.cards.findIndex((c: CardType) => c === request.card);
+    const newCards = cardIndex >= 0
+      ? [...updatedHand.cards.slice(0, cardIndex), ...updatedHand.cards.slice(cardIndex + 1)]
+      : updatedHand.cards;
 
     // Update player hand
     await supabaseClient
