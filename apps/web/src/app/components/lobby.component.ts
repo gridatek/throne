@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, effect } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { GameService } from '../services/game.service';
@@ -198,7 +198,16 @@ export class LobbyComponent implements OnInit, OnDestroy {
     private supabaseService: SupabaseService,
     private router: Router,
     private route: ActivatedRoute
-  ) {}
+  ) {
+    // Watch for game status changes and navigate when game starts
+    effect(() => {
+      const game = this.game();
+      if (game && game.status === 'in_progress' && this.gameId) {
+        console.log('🚀 Game started! Navigating to game...');
+        this.router.navigate(['/game', this.gameId]);
+      }
+    });
+  }
 
   get game() {
     return this.gameService.currentGame;
