@@ -1,101 +1,300 @@
-# Throne
+# 💌 Love Letter - Online Multiplayer Card Game
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+A real-time multiplayer implementation of the popular card game "Love Letter" built with Angular and Supabase.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+![Love Letter](https://img.shields.io/badge/Players-2--8-blue)
+![Angular](https://img.shields.io/badge/Angular-21-red)
+![Supabase](https://img.shields.io/badge/Supabase-Real--time-green)
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/getting-started/tutorials/angular-monorepo-tutorial?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+## 🎮 About the Game
 
-## Run tasks
+Love Letter is a game of risk, deduction, and luck. Players attempt to deliver their love letter to the Princess while removing others from the game. Each round is fast-paced, and the first player to collect enough tokens of affection wins!
 
-To run the dev server for your app, use:
+### Key Features
 
-```sh
+- 🎯 **2-8 Player Support**: Play with friends or family
+- 🔄 **Real-time Multiplayer**: Instant synchronization using Supabase Realtime
+- 👤 **No Login Required**: Play as a guest immediately
+- 🎨 **Beautiful UI**: Modern design with TailwindCSS
+- 📱 **Responsive**: Works on desktop and mobile
+- ⚡ **Fast Rounds**: 5-10 minutes per game
+
+## 📚 Documentation
+
+- **[Complete Game Guide](docs/GAME_GUIDE.md)** - Learn how to play Love Letter
+- **[E2E Testing Guide](apps/web-e2e/README.md)** - Run and write tests
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 20+
+- npm or yarn
+- Supabase CLI (for local development)
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/gridatek/throne.git
+cd throne
+
+# Install dependencies
+npm install
+```
+
+### Running Locally
+
+1. **Start Supabase**
+
+```bash
+cd apps/supabase
+supabase start
+```
+
+This will start:
+- PostgreSQL database (port 54322)
+- API server (port 54321)
+- Supabase Studio (port 54323)
+
+2. **Start the Web App**
+
+```bash
 npx nx serve web
 ```
 
-To create a production bundle:
+The app will be available at `http://localhost:4200`
 
-```sh
+3. **Play the Game!**
+
+- Open the app in your browser
+- Create a new game or join with a room code
+- Share the code with friends to play together
+
+## 🏗️ Project Structure
+
+```
+throne/
+├── apps/
+│   ├── web/                    # Angular web application
+│   │   └── src/
+│   │       ├── app/
+│   │       │   ├── components/ # Game components
+│   │       │   ├── services/   # Game & Supabase services
+│   │       │   └── models/     # TypeScript interfaces
+│   │       └── environments/   # Environment config
+│   │
+│   ├── admin/                  # Admin application
+│   ├── web-e2e/                # E2E tests (Playwright)
+│   └── supabase/               # Supabase configuration
+│       └── production/
+│           └── migrations/     # Database migrations
+│
+├── docs/                       # Documentation
+│   └── GAME_GUIDE.md          # Complete game rules
+│
+└── .github/
+    └── workflows/              # CI/CD workflows
+        └── e2e-tests.yml      # Automated testing
+```
+
+## 🎯 How to Play
+
+### Creating a Game
+
+1. Enter your name
+2. Select the maximum number of players (2-8)
+3. Click "Create Game"
+4. Share the 6-digit room code with your friends
+
+### Joining a Game
+
+1. Click "Join Existing Game"
+2. Enter your name
+3. Enter the room code
+4. Wait for the host to start the game
+
+### Gameplay
+
+- Each turn, draw a card and play one of your two cards
+- Use card effects strategically to eliminate opponents
+- Last player standing or highest card wins the round
+- First to collect enough tokens wins the game!
+
+**For detailed rules and strategy, see the [Complete Game Guide](docs/GAME_GUIDE.md)**
+
+## 🧪 Testing
+
+### Run E2E Tests
+
+```bash
+# Start Supabase first
+cd apps/supabase && supabase start
+
+# Run tests
+npx nx e2e web-e2e
+
+# Run in UI mode
+npx playwright test --ui
+```
+
+### CI/CD
+
+Tests run automatically on:
+- Push to `main`, `develop`, or `feature/**` branches
+- Pull requests to `main` or `develop`
+
+See [E2E Testing Guide](apps/web-e2e/README.md) for more details.
+
+## 🎴 The Cards
+
+| Card | Value | Effect |
+|------|-------|--------|
+| Princess | 8 | Lose if discarded |
+| Countess | 7 | Must discard if caught with King/Prince |
+| King | 6 | Trade hands with another player |
+| Prince | 5 | Force discard and draw |
+| Handmaid | 4 | Protection until next turn |
+| Baron | 3 | Compare hands; lower loses |
+| Priest | 2 | Look at another player's hand |
+| Guard | 1 | Guess another player's card |
+
+## 🛠️ Tech Stack
+
+### Frontend
+- **Angular 21** - Modern web framework with signals
+- **TailwindCSS 4** - Utility-first CSS
+- **TypeScript** - Type safety
+
+### Backend
+- **Supabase** - Backend as a Service
+  - PostgreSQL 17 - Database
+  - Realtime - WebSocket connections
+  - Row Level Security - Data protection
+
+### DevOps
+- **Nx** - Monorepo management
+- **Playwright** - E2E testing
+- **GitHub Actions** - CI/CD
+
+## 📊 Database Schema
+
+The game uses the following main tables:
+
+- `games` - Game sessions and metadata
+- `game_players` - Players in each game
+- `game_state` - Current round state (deck, turn, etc.)
+- `player_hands` - Cards each player holds
+- `game_actions` - Complete action history
+
+All tables have Row Level Security (RLS) policies to ensure data integrity.
+
+## 🔧 Development
+
+### Available Commands
+
+```bash
+# Serve web app
+npx nx serve web
+
+# Serve admin app
+npx nx serve admin
+
+# Build for production
 npx nx build web
+
+# Run linting
+npx nx lint web
+
+# Run tests
+npx nx e2e web-e2e
+
+# Supabase commands
+cd apps/supabase
+supabase start      # Start local instance
+supabase stop       # Stop local instance
+supabase status     # Check status
+supabase db reset   # Reset database
 ```
 
-To see all available targets to run for a project, run:
+### Environment Variables
 
-```sh
+The app uses local Supabase by default. Configuration is in:
+- `apps/web/src/environments/environment.ts`
+
+For production, update the Supabase URL and anon key.
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Code Style
+
+- Follow Angular style guide
+- Use TypeScript strict mode
+- Write E2E tests for new features
+- Use conventional commits
+
+## 📝 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🎯 Roadmap
+
+- [ ] Add authentication (optional login)
+- [ ] Player statistics and leaderboards
+- [ ] Game replay system
+- [ ] Chat system
+- [ ] Custom game modes
+- [ ] Achievements
+- [ ] Mobile app (Capacitor)
+- [ ] AI opponents for solo play
+- [ ] Tournament mode
+
+## 🐛 Known Issues
+
+- Game state doesn't persist if you refresh the page (by design)
+- Guest IDs are browser-specific (localStorage)
+
+## 📧 Contact
+
+For questions or feedback, please open an issue on GitHub.
+
+---
+
+## Nx Workspace
+
+This project is built with [Nx](https://nx.dev), a powerful build system for monorepos.
+
+### Nx Commands
+
+```bash
+# Visualize project graph
+npx nx graph
+
+# Show all available targets for a project
 npx nx show project web
+
+# Run affected tests only
+npx nx affected:test
+
+# Build all projects
+npx nx run-many --target=build --all
 ```
-
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
-
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Add new projects
-
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
-
-Use the plugin's generator to create new projects.
-
-To generate a new application, use:
-
-```sh
-npx nx g @nx/angular:app demo
-```
-
-To generate a new library, use:
-
-```sh
-npx nx g @nx/angular:lib mylib
-```
-
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
-
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Set up CI!
-
-### Step 1
-
-To connect to Nx Cloud, run the following command:
-
-```sh
-npx nx connect
-```
-
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Step 2
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
-```
-
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
 
 Learn more:
+- [Nx Documentation](https://nx.dev)
+- [Nx Console for VSCode/IntelliJ](https://nx.dev/getting-started/editor-setup)
 
-- [Learn more about this workspace setup](https://nx.dev/getting-started/tutorials/angular-monorepo-tutorial?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+---
 
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+**Enjoy the game, and may your love letter reach the Princess!** 💌
+
+## Credits
+
+Original game designed by Seiji Kanai, published by AEG.
+This is a fan-made digital implementation for educational purposes.
