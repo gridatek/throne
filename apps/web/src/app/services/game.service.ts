@@ -319,6 +319,7 @@ export class GameService {
 
   private async handlePrince(targetId: string, state: GameState): Promise<void> {
     const supabaseClient = this.supabase.getClient();
+    const playerId = this.supabase.getCurrentPlayerId();
 
     const { data: targetHand } = await supabaseClient
       .from('player_hands')
@@ -330,11 +331,31 @@ export class GameService {
 
     if (!targetHand) return;
 
-    const discardedCard = targetHand.cards[0];
+    // Determine which card to discard
+    let discardedCard: CardType;
+    if (targetId === playerId && targetHand.cards.length === 2) {
+      // If targeting yourself and you have 2 cards, discard the one you're NOT playing (the non-Prince)
+      discardedCard = targetHand.cards.find(c => c !== 'Prince') || targetHand.cards[0];
+    } else {
+      // Otherwise discard the only card they have
+      discardedCard = targetHand.cards[0];
+    }
 
-    // If Princess, eliminate
+    // Add discarded card to discard pile
+    const newDiscardPile = [...state.discard_pile, discardedCard];
+    await supabaseClient
+      .from('game_state')
+      .update({ discard_pile: newDiscardPile })
+      .eq('id', state.id);
+
+    // If Princess was discarded, eliminate the player
     if (discardedCard === 'Princess') {
       await this.eliminatePlayer(targetId, state.game_id);
+      // Also clear their hand
+      await supabaseClient
+        .from('player_hands')
+        .update({ cards: [] })
+        .eq('id', targetHand.id);
       return;
     }
 

@@ -350,11 +350,17 @@ export class GameComponent implements OnInit, OnDestroy {
 
   getValidTargets(): GamePlayer[] {
     const myId = this.supabaseService.getCurrentPlayerId();
-    return this.players().filter(p =>
-      !p.is_eliminated &&
-      p.player_id !== myId &&
-      !this.isProtected(p)
-    );
+    const card = this.selectedCard();
+
+    return this.players().filter(p => {
+      if (p.is_eliminated) return false;
+      if (this.isProtected(p)) return false;
+
+      // Prince can target yourself, other cards cannot
+      if (card === 'Prince') return true;
+
+      return p.player_id !== myId;
+    });
   }
 
   getGuessableCards(): CardType[] {
