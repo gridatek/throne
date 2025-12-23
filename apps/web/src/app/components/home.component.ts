@@ -161,7 +161,7 @@ export class HomeComponent {
     try {
       const game = await this.gameService.createGame({
         player_name: this.playerName(),
-        max_players: 8 // Support 2-8 players flexibly
+        max_players: 4 // Support 2-4 players
       });
 
       // Navigate to lobby

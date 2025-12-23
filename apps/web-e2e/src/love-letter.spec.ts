@@ -46,7 +46,7 @@ test.describe('Love Letter Game', () => {
       // Fill in player name
       await page.locator('input[placeholder*="name"]').fill('Player 1');
 
-      // Create game (defaults to 8 max players)
+      // Create game (defaults to 4 max players)
       await page.locator('button:has-text("Create Game")').click();
 
       // Wait for navigation to lobby
@@ -68,7 +68,7 @@ test.describe('Love Letter Game', () => {
     test('should display correct game settings in lobby', async ({ page }) => {
       await page.goto('/');
 
-      // Create game (defaults to 8 max players)
+      // Create game (defaults to 4 max players)
       await page.locator('input[placeholder*="name"]').fill('Host Player');
       await page.locator('button:has-text("Create Game")').click();
 
@@ -76,7 +76,7 @@ test.describe('Love Letter Game', () => {
 
       // Check max players
       await expect(page.locator('text=Max Players')).toBeVisible();
-      await expect(page.locator('text=8').first()).toBeVisible();
+      await expect(page.locator('text=4').first()).toBeVisible();
 
       // Check tokens to win
       await expect(page.locator('text=Tokens to Win')).toBeVisible();
