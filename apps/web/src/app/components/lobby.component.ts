@@ -1,13 +1,14 @@
 import { Component, OnInit, OnDestroy, signal, effect } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { GameService } from '../services/game.service';
 import { SupabaseService } from '../services/supabase.service';
 
 @Component({
   selector: 'app-lobby',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-red-100 p-4">
       <div class="max-w-4xl mx-auto">
@@ -68,6 +69,23 @@ import { SupabaseService } from '../services/supabase.service';
             <!-- Start Button (only for host) -->
             @if (isHost()) {
               <div class="mt-6">
+                <!-- Starting Player Selection -->
+                @if (canStart()) {
+                  <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                      Who starts first?
+                    </label>
+                    <select
+                      [(ngModel)]="startingPlayerId"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    >
+                      @for (player of players(); track player.id) {
+                        <option [value]="player.player_id">{{ player.player_name }}</option>
+                      }
+                    </select>
+                  </div>
+                }
+
                 <button
                   (click)="startGame()"
                   [disabled]="!canStart() || starting()"
@@ -190,6 +208,7 @@ import { SupabaseService } from '../services/supabase.service';
 export class LobbyComponent implements OnInit, OnDestroy {
   starting = signal(false);
   error = signal('');
+  startingPlayerId: string = '';
 
   private gameId: string | null = null;
 
@@ -229,6 +248,12 @@ export class LobbyComponent implements OnInit, OnDestroy {
     try {
       await this.gameService.loadGameData(this.gameId);
       this.gameService.subscribeToGame(this.gameId);
+
+      // Initialize starting player to first player (host)
+      const players = this.players();
+      if (players.length > 0) {
+        this.startingPlayerId = players[0].player_id;
+      }
     } catch (err) {
       console.error('Failed to load lobby data:', err);
       this.error.set('Failed to load game data');
@@ -257,13 +282,13 @@ export class LobbyComponent implements OnInit, OnDestroy {
   }
 
   async startGame(): Promise<void> {
-    if (!this.gameId || !this.canStart()) return;
+    if (!this.gameId || !this.canStart() || !this.startingPlayerId) return;
 
     this.starting.set(true);
     this.error.set('');
 
     try {
-      await this.gameService.startGame(this.gameId);
+      await this.gameService.startGame(this.gameId, this.startingPlayerId);
       // Navigate to game
       this.router.navigate(['/game', this.gameId]);
     } catch (err: any) {

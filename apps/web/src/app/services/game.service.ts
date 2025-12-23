@@ -127,7 +127,7 @@ export class GameService {
     return game;
   }
 
-  async startGame(gameId: string): Promise<void> {
+  async startGame(gameId: string, startingPlayerId: string): Promise<void> {
     const supabaseClient = this.supabase.getClient();
 
     // Check if enough players (ordered by join_order)
@@ -153,12 +153,17 @@ export class GameService {
 
     if (updateError) throw updateError;
 
-    // Initialize first round
-    await this.initializeRound(gameId, 1, players.map(p => p.player_id));
+    // Reorder players so the selected starting player goes first
+    const startingPlayerIndex = players.findIndex(p => p.player_id === startingPlayerId);
+    const reorderedPlayers = startingPlayerIndex >= 0
+      ? [...players.slice(startingPlayerIndex), ...players.slice(0, startingPlayerIndex)]
+      : players;
 
-    // Draw card for first player (everyone starts with 1, first player needs to draw to have 2)
-    const firstPlayerId = players[0].player_id;
-    await this.drawCardForPlayer(gameId, 1, firstPlayerId);
+    // Initialize first round
+    await this.initializeRound(gameId, 1, reorderedPlayers.map(p => p.player_id));
+
+    // Draw card for selected starting player
+    await this.drawCardForPlayer(gameId, 1, startingPlayerId);
   }
 
   async playCard(request: PlayCardRequest): Promise<void> {
