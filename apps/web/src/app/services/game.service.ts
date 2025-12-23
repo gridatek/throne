@@ -282,6 +282,8 @@ export class GameService {
     const game = this.currentGame();
     if (game?.status === 'in_progress') {
       await this.nextTurn(updatedState);
+      // Reload game data to update UI with new turn
+      await this.loadGameData(request.game_id);
     }
   }
 
