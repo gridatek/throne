@@ -32,20 +32,33 @@ jobs:
 
       - name: Start Supabase
         run: |
-          cd apps/supabase
+          cd apps/supabase/production
           supabase start
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Wait for Supabase to be ready
         run: |
           echo "Waiting for Supabase services to be ready..."
-          timeout 60 bash -c 'until curl -s http://localhost:54321/health > /dev/null; do sleep 2; done' || echo "Supabase health check timed out"
-          sleep 5
+          sleep 10
+
+          # Check if Supabase is running
+          max_attempts=30
+          attempt=0
+          until curl -f http://localhost:54321/health || [ $attempt -eq $max_attempts ]; do
+            echo "Attempt $((attempt+1))/$max_attempts - Waiting for Supabase..."
+            sleep 2
+            attempt=$((attempt+1))
+          done
+
+          if [ $attempt -eq $max_attempts ]; then
+            echo "Supabase failed to start"
+            exit 1
+          fi
+
+          echo "Supabase is ready!"
 
       - name: Verify Supabase is running
         run: |
-          cd apps/supabase
+          cd apps/supabase/production
           supabase status
 
       - name: Install Playwright browsers
@@ -61,7 +74,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: apps/web-e2e/playwright-report/
+          path: |
+            dist/.playwright/apps/web-e2e/playwright-report/
+            apps/web-e2e/playwright-report/
           retention-days: 30
 
       - name: Upload test screenshots
@@ -69,11 +84,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-screenshots
-          path: apps/web-e2e/test-results/
+          path: |
+            dist/.playwright/apps/web-e2e/test-output/
+            apps/web-e2e/test-results/
           retention-days: 7
 
       - name: Stop Supabase
         if: always()
         run: |
-          cd apps/supabase
-          supabase stop
+          cd apps/supabase/production
+          supabase stop || true
