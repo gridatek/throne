@@ -76,6 +76,23 @@ import { CardType, GamePlayer } from '../models/game.models';
             <div class="bg-white rounded-xl shadow-lg p-6">
               <h2 class="text-xl font-bold text-gray-800 mb-4">Your Hand</h2>
 
+              <!-- Draw Card Button -->
+              @if (isMyTurn() && !hasDrawn()) {
+                <div class="mb-6">
+                  <button
+                    (click)="drawCard()"
+                    [disabled]="drawing()"
+                    class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-lg transition-colors text-lg"
+                  >
+                    @if (drawing()) {
+                      <span>Drawing...</span>
+                    } @else {
+                      <span>🃏 Draw Card</span>
+                    }
+                  </button>
+                </div>
+              }
+
               @if (myHand()?.cards && myHand()!.cards.length > 0) {
                 <div class="flex flex-wrap gap-4 justify-center">
                   @for (card of myHand()!.cards; track $index) {
@@ -245,6 +262,7 @@ export class GameComponent implements OnInit, OnDestroy {
   targetPlayer = signal<string | null>(null);
   guessCard = signal<CardType | null>(null);
   playing = signal(false);
+  drawing = signal(false);
   error = signal('');
 
   private gameId: string | null = null;
@@ -329,6 +347,37 @@ export class GameComponent implements OnInit, OnDestroy {
     const myId = this.supabaseService.getCurrentPlayerId();
     const me = this.players().find(p => p.player_id === myId);
     return me?.is_eliminated || false;
+  }
+
+  hasDrawn(): boolean {
+    const hand = this.myHand();
+    // If you have 2 cards, you've already drawn
+    return hand ? hand.cards.length >= 2 : false;
+  }
+
+  async drawCard(): Promise<void> {
+    if (!this.gameId || !this.isMyTurn() || this.hasDrawn()) return;
+
+    this.drawing.set(true);
+    this.error.set('');
+
+    try {
+      const state = this.gameState();
+      const myId = this.supabaseService.getCurrentPlayerId();
+
+      if (!state) {
+        throw new Error('No active game state');
+      }
+
+      await this.gameService.drawCardForPlayer(this.gameId, state.round_number, myId);
+
+      // Reload game data to see the new card
+      await this.gameService.loadGameData(this.gameId);
+    } catch (err: any) {
+      this.error.set(err.message || 'Failed to draw card');
+    } finally {
+      this.drawing.set(false);
+    }
   }
 
   canSelectCard(card: CardType): boolean {

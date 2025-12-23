@@ -162,8 +162,7 @@ export class GameService {
     // Initialize first round
     await this.initializeRound(gameId, 1, reorderedPlayers.map(p => p.player_id));
 
-    // Draw card for selected starting player
-    await this.drawCardForPlayer(gameId, 1, startingPlayerId);
+    // Note: Player must manually draw their first card
   }
 
   async playCard(request: PlayCardRequest): Promise<void> {
@@ -469,38 +468,30 @@ export class GameService {
 
     if (!nextPlayerId) return;
 
-    // Draw card for next player
-    if (state.deck.length > 0) {
-      const drawnCard = state.deck[0];
-      const newDeck = state.deck.slice(1);
+    // Remove protection from next player's hand (Handmaid effect ends)
+    const { data: nextHand } = await supabaseClient
+      .from('player_hands')
+      .select()
+      .eq('game_id', state.game_id)
+      .eq('round_number', state.round_number)
+      .eq('player_id', nextPlayerId)
+      .single();
 
-      const { data: nextHand } = await supabaseClient
-        .from('player_hands')
-        .select()
-        .eq('game_id', state.game_id)
-        .eq('round_number', state.round_number)
-        .eq('player_id', nextPlayerId)
-        .single();
-
-      if (nextHand) {
-        await supabaseClient
-          .from('player_hands')
-          .update({
-            cards: [...nextHand.cards, drawnCard],
-            is_protected: false // Remove protection at start of turn
-          })
-          .eq('id', nextHand.id);
-      }
-
+    if (nextHand) {
       await supabaseClient
-        .from('game_state')
-        .update({
-          current_turn_player_id: nextPlayerId,
-          turn_number: state.turn_number + 1,
-          deck: newDeck
-        })
-        .eq('id', state.id);
+        .from('player_hands')
+        .update({ is_protected: false })
+        .eq('id', nextHand.id);
     }
+
+    // Update to next turn (player must manually draw)
+    await supabaseClient
+      .from('game_state')
+      .update({
+        current_turn_player_id: nextPlayerId,
+        turn_number: state.turn_number + 1
+      })
+      .eq('id', state.id);
   }
 
   private async checkRoundEnd(gameId: string, roundNumber: number): Promise<void> {
@@ -625,8 +616,7 @@ export class GameService {
         ];
 
         await this.initializeRound(gameId, roundNumber + 1, reorderedPlayers.map(p => p.player_id));
-        // Draw card for winner (who starts the new round)
-        await this.drawCardForPlayer(gameId, roundNumber + 1, winnerId);
+        // Note: Winner must manually draw their first card
       }
     }
   }
@@ -641,7 +631,7 @@ export class GameService {
     });
   }
 
-  private async drawCardForPlayer(gameId: string, roundNumber: number, playerId: string): Promise<void> {
+  async drawCardForPlayer(gameId: string, roundNumber: number, playerId: string): Promise<void> {
     const supabaseClient = this.supabase.getClient();
 
     // Get current game state
