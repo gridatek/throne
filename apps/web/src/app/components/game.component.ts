@@ -76,22 +76,24 @@ import { CardType, GamePlayer } from '../models/game.models';
             <div class="bg-white rounded-xl shadow-lg p-6">
               <h2 class="text-xl font-bold text-gray-800 mb-4">Your Hand</h2>
 
-              <!-- Draw Card Button -->
-              @if (isMyTurn() && !hasDrawn()) {
-                <div class="mb-6">
-                  <button
-                    (click)="drawCard()"
-                    [disabled]="drawing()"
-                    class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-lg transition-colors text-lg"
-                  >
-                    @if (drawing()) {
-                      <span>Drawing...</span>
-                    } @else {
-                      <span>🃏 Draw Card</span>
-                    }
-                  </button>
-                </div>
-              }
+              <!-- Draw Card Button - Always visible -->
+              <div class="mb-6">
+                <button
+                  (click)="drawCard()"
+                  [disabled]="!canDraw()"
+                  class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-lg transition-colors text-lg"
+                >
+                  @if (drawing()) {
+                    <span>Drawing...</span>
+                  } @else if (!isMyTurn()) {
+                    <span>🃏 Wait for your turn</span>
+                  } @else if (hasDrawn()) {
+                    <span>✓ Card drawn - play a card</span>
+                  } @else {
+                    <span>🃏 Draw Card</span>
+                  }
+                </button>
+              </div>
 
               @if (myHand()?.cards && myHand()!.cards.length > 0) {
                 <div class="flex flex-wrap gap-4 justify-center">
@@ -353,6 +355,10 @@ export class GameComponent implements OnInit, OnDestroy {
     const hand = this.myHand();
     // If you have 2 cards, you've already drawn
     return hand ? hand.cards.length >= 2 : false;
+  }
+
+  canDraw(): boolean {
+    return this.isMyTurn() && !this.hasDrawn() && !this.drawing();
   }
 
   async drawCard(): Promise<void> {
