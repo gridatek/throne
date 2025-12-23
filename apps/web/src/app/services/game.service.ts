@@ -28,6 +28,7 @@ export class GameService {
   private realtimeChannel: RealtimeChannel | null = null;
   private lastPriestReveal: { targetId: string; card: CardType } | null = null;
   private lastPrinceDiscard: CardType | null = null;
+  private targetWasProtected: boolean = false;
 
   constructor(private supabase: SupabaseService) {}
 
@@ -174,6 +175,9 @@ export class GameService {
 
     if (!state) throw new Error('No active game state');
 
+    // Reset protection flag
+    this.targetWasProtected = false;
+
     // Verify it's player's turn
     if (state.current_turn_player_id !== playerId) {
       throw new Error('Not your turn');
@@ -252,6 +256,9 @@ export class GameService {
     }
     if (this.lastPriestReveal && request.card === 'Priest') {
       actionDetails.revealed_card = this.lastPriestReveal.card;
+    }
+    if (this.targetWasProtected) {
+      actionDetails.target_protected = true;
     }
 
     // Log action
@@ -371,6 +378,7 @@ export class GameService {
 
     // Check if target is protected (Handmaid effect)
     if (await this.isPlayerProtected(targetId, state.game_id, state.round_number)) {
+      this.targetWasProtected = true;
       return; // No effect on protected players
     }
 
@@ -392,6 +400,7 @@ export class GameService {
   private async handlePriest(targetId: string, state: GameState): Promise<void> {
     // Check if target is protected
     if (await this.isPlayerProtected(targetId, state.game_id, state.round_number)) {
+      this.targetWasProtected = true;
       return; // No effect on protected players
     }
 
@@ -423,6 +432,7 @@ export class GameService {
   private async handleBaron(targetId: string, state: GameState): Promise<void> {
     // Check if target is protected
     if (await this.isPlayerProtected(targetId, state.game_id, state.round_number)) {
+      this.targetWasProtected = true;
       return; // No effect on protected players
     }
 
@@ -476,6 +486,7 @@ export class GameService {
     // Check if target is protected (unless targeting yourself)
     const playerId = this.supabase.getCurrentPlayerId();
     if (targetId !== playerId && await this.isPlayerProtected(targetId, state.game_id, state.round_number)) {
+      this.targetWasProtected = true;
       return; // No effect on protected players
     }
 
@@ -542,6 +553,7 @@ export class GameService {
   private async handleKing(targetId: string, state: GameState): Promise<void> {
     // Check if target is protected
     if (await this.isPlayerProtected(targetId, state.game_id, state.round_number)) {
+      this.targetWasProtected = true;
       return; // No effect on protected players
     }
 
