@@ -184,6 +184,13 @@ export class GameService {
       throw new Error('Card not in hand');
     }
 
+    // Countess rule: Must play Countess if you have King or Prince
+    if (hand.cards.includes('Countess') &&
+        (hand.cards.includes('King') || hand.cards.includes('Prince')) &&
+        request.card !== 'Countess') {
+      throw new Error('You must play the Countess when you have King or Prince');
+    }
+
     // Process card effect
     await this.processCardEffect(request, state);
 

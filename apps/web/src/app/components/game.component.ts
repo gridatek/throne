@@ -81,7 +81,7 @@ import { CardType, GamePlayer } from '../models/game.models';
                   @for (card of myHand()!.cards; track $index) {
                     <app-card
                       [card]="card"
-                      [selectable]="isMyTurn() && !selectedCard()"
+                      [selectable]="isMyTurn() && !selectedCard() && canSelectCard(card)"
                       [selected]="selectedCard() === card"
                       (cardClick)="selectCard(card)"
                     />
@@ -331,7 +331,22 @@ export class GameComponent implements OnInit, OnDestroy {
     return me?.is_eliminated || false;
   }
 
+  canSelectCard(card: CardType): boolean {
+    const hand = this.myHand();
+    if (!hand) return true;
+
+    // Countess rule: Can't select King or Prince if you have Countess
+    if (hand.cards.includes('Countess') &&
+        (card === 'King' || card === 'Prince')) {
+      return false;
+    }
+
+    return true;
+  }
+
   selectCard(card: CardType): void {
+    if (!this.canSelectCard(card)) return;
+
     this.selectedCard.set(card);
     this.targetPlayer.set(null);
     this.guessCard.set(null);
