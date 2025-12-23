@@ -130,11 +130,12 @@ export class GameService {
   async startGame(gameId: string): Promise<void> {
     const supabaseClient = this.supabase.getClient();
 
-    // Check if enough players
+    // Check if enough players (ordered by join_order)
     const { data: players } = await supabaseClient
       .from('game_players')
       .select()
-      .eq('game_id', gameId);
+      .eq('game_id', gameId)
+      .order('join_order');
 
     if (!players || players.length < 2) {
       throw new Error('Need at least 2 players to start');
@@ -154,6 +155,10 @@ export class GameService {
 
     // Initialize first round
     await this.initializeRound(gameId, 1, players.map(p => p.player_id));
+
+    // Draw card for first player (everyone starts with 1, first player needs to draw to have 2)
+    const firstPlayerId = players[0].player_id;
+    await this.drawCardForPlayer(gameId, 1, firstPlayerId);
   }
 
   async playCard(request: PlayCardRequest): Promise<void> {
@@ -538,10 +543,13 @@ export class GameService {
       const { data: players } = await supabaseClient
         .from('game_players')
         .select()
-        .eq('game_id', gameId);
+        .eq('game_id', gameId)
+        .order('join_order');
 
       if (players) {
         await this.initializeRound(gameId, roundNumber + 1, players.map(p => p.player_id));
+        // Draw card for first player of new round
+        await this.drawCardForPlayer(gameId, roundNumber + 1, players[0].player_id);
       }
     }
   }
@@ -554,6 +562,47 @@ export class GameService {
       p_round_number: roundNumber,
       p_player_ids: playerIds
     });
+  }
+
+  private async drawCardForPlayer(gameId: string, roundNumber: number, playerId: string): Promise<void> {
+    const supabaseClient = this.supabase.getClient();
+
+    // Get current game state
+    const { data: state } = await supabaseClient
+      .from('game_state')
+      .select()
+      .eq('game_id', gameId)
+      .eq('round_number', roundNumber)
+      .single();
+
+    if (!state || state.deck.length === 0) return;
+
+    // Draw top card from deck
+    const drawnCard = state.deck[0];
+    const newDeck = state.deck.slice(1);
+
+    // Get player's hand
+    const { data: playerHand } = await supabaseClient
+      .from('player_hands')
+      .select()
+      .eq('game_id', gameId)
+      .eq('round_number', roundNumber)
+      .eq('player_id', playerId)
+      .single();
+
+    if (!playerHand) return;
+
+    // Add card to hand
+    await supabaseClient
+      .from('player_hands')
+      .update({ cards: [...playerHand.cards, drawnCard] })
+      .eq('id', playerHand.id);
+
+    // Update deck
+    await supabaseClient
+      .from('game_state')
+      .update({ deck: newDeck })
+      .eq('id', state.id);
   }
 
   async loadGameData(gameId: string): Promise<void> {
