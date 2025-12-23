@@ -210,14 +210,14 @@ export class GameService {
     if (!updatedHand) throw new Error('Hand not found after card effect');
 
     // Re-fetch game state after card effect (effects like Prince modify discard pile)
-    const { data: updatedState } = await supabaseClient
+    const { data: stateAfterEffect } = await supabaseClient
       .from('game_state')
       .select()
       .eq('game_id', request.game_id)
       .eq('round_number', state.round_number)
       .single();
 
-    if (!updatedState) throw new Error('Game state not found after card effect');
+    if (!stateAfterEffect) throw new Error('Game state not found after card effect');
 
     // Remove card from hand
     const newCards = updatedHand.cards.filter((c: CardType) => c !== request.card);
@@ -229,7 +229,7 @@ export class GameService {
       .eq('id', updatedHand.id);
 
     // Add to discard pile (using updated state to preserve cards added by effects)
-    const newDiscard = [...updatedState.discard_pile, request.card];
+    const newDiscard = [...stateAfterEffect.discard_pile, request.card];
     await supabaseClient
       .from('game_state')
       .update({ discard_pile: newDiscard })
