@@ -393,16 +393,23 @@ export class GameService {
     const myHand = hands.find(h => h.player_id === playerId);
     const theirHand = hands.find(h => h.player_id === targetId);
 
-    if (!myHand || !theirHand || !myHand.cards[0] || !theirHand.cards[0]) return;
+    if (!myHand || !theirHand || !theirHand.cards[0]) return;
 
-    const myValue = CARD_VALUES[myHand.cards[0] as CardType];
-    const theirValue = CARD_VALUES[theirHand.cards[0] as CardType];
+    // Get the card to compare (not the Baron being played)
+    const myCardToCompare = myHand.cards.length === 2
+      ? myHand.cards.find((c: CardType) => c !== 'Baron') || myHand.cards[0]
+      : myHand.cards[0];
+    const theirCardToCompare = theirHand.cards[0];
+
+    const myValue = CARD_VALUES[myCardToCompare as CardType];
+    const theirValue = CARD_VALUES[theirCardToCompare as CardType];
 
     if (myValue < theirValue) {
       await this.eliminatePlayer(playerId, state.game_id);
     } else if (theirValue < myValue) {
       await this.eliminatePlayer(targetId, state.game_id);
     }
+    // If equal, no one is eliminated
   }
 
   private async handleHandmaid(state: GameState): Promise<void> {
