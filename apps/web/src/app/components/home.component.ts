@@ -181,8 +181,8 @@ export class HomeComponent {
 
     try {
       const game = await this.gameService.joinGame({
-        room_code: this.roomCode(),
-        player_name: this.playerName()
+        room_code: this.roomCode().trim(),
+        player_name: this.playerName().trim()
       });
 
       // Navigate to lobby

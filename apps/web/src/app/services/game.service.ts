@@ -82,7 +82,10 @@ export class GameService {
       .eq('status', 'waiting')
       .single();
 
-    if (findError || !game) throw new Error('Game not found or already started');
+    if (findError || !game) {
+      console.error('Join game error:', findError, 'Room code:', request.room_code);
+      throw new Error('Game not found or already started');
+    }
 
     // Check if game is full
     const { count } = await supabaseClient
