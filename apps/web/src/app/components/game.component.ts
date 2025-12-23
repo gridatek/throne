@@ -341,8 +341,17 @@ export class GameComponent implements OnInit, OnDestroy {
   }
 
   isProtected(player: GamePlayer): boolean {
-    // This would need to be tracked in player_hands table
-    return false; // Simplified for now
+    const state = this.gameState();
+    if (!state) return false;
+
+    // Check if player's hand is protected (from Handmaid)
+    // We need to get this from the game state or player data
+    // For now, we'll check if the player has Handmaid protection
+    // This should be stored in player_hands.is_protected, but we need access to it
+
+    // TODO: This needs to be exposed in a public way since we can't access other players' hands
+    // For now, return false until we add is_protected to game_players table
+    return false;
   }
 
   isEliminated(): boolean {

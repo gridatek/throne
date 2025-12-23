@@ -353,8 +353,26 @@ export class GameService {
     }
   }
 
+  private async isPlayerProtected(playerId: string, gameId: string, roundNumber: number): Promise<boolean> {
+    const supabaseClient = this.supabase.getClient();
+    const { data: hand } = await supabaseClient
+      .from('player_hands')
+      .select('is_protected')
+      .eq('game_id', gameId)
+      .eq('round_number', roundNumber)
+      .eq('player_id', playerId)
+      .maybeSingle();
+
+    return hand?.is_protected || false;
+  }
+
   private async handleGuard(targetId: string, guessCard: CardType, state: GameState): Promise<void> {
     if (guessCard === 'Guard') return; // Can't guess Guard
+
+    // Check if target is protected (Handmaid effect)
+    if (await this.isPlayerProtected(targetId, state.game_id, state.round_number)) {
+      return; // No effect on protected players
+    }
 
     const supabaseClient = this.supabase.getClient();
     const { data: targetHand } = await supabaseClient
@@ -372,6 +390,11 @@ export class GameService {
   }
 
   private async handlePriest(targetId: string, state: GameState): Promise<void> {
+    // Check if target is protected
+    if (await this.isPlayerProtected(targetId, state.game_id, state.round_number)) {
+      return; // No effect on protected players
+    }
+
     const supabaseClient = this.supabase.getClient();
 
     // Get target's hand
@@ -398,6 +421,11 @@ export class GameService {
   }
 
   private async handleBaron(targetId: string, state: GameState): Promise<void> {
+    // Check if target is protected
+    if (await this.isPlayerProtected(targetId, state.game_id, state.round_number)) {
+      return; // No effect on protected players
+    }
+
     const supabaseClient = this.supabase.getClient();
     const playerId = this.supabase.getCurrentPlayerId();
 
@@ -445,8 +473,13 @@ export class GameService {
   }
 
   private async handlePrince(targetId: string, state: GameState): Promise<void> {
-    const supabaseClient = this.supabase.getClient();
+    // Check if target is protected (unless targeting yourself)
     const playerId = this.supabase.getCurrentPlayerId();
+    if (targetId !== playerId && await this.isPlayerProtected(targetId, state.game_id, state.round_number)) {
+      return; // No effect on protected players
+    }
+
+    const supabaseClient = this.supabase.getClient();
 
     const { data: targetHand } = await supabaseClient
       .from('player_hands')
@@ -507,6 +540,11 @@ export class GameService {
   }
 
   private async handleKing(targetId: string, state: GameState): Promise<void> {
+    // Check if target is protected
+    if (await this.isPlayerProtected(targetId, state.game_id, state.round_number)) {
+      return; // No effect on protected players
+    }
+
     const supabaseClient = this.supabase.getClient();
     const playerId = this.supabase.getCurrentPlayerId();
 
