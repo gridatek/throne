@@ -46,13 +46,17 @@ export class SupabaseService {
   // Subscribe to real-time changes
   subscribe(
     channel: string,
-    event: string,
+    event: '*' | 'INSERT' | 'UPDATE' | 'DELETE',
     table: string,
     callback: (payload: any) => void
   ): RealtimeChannel {
     return this.supabase
       .channel(channel)
-      .on('postgres_changes', { event, schema: 'public', table }, callback)
+      .on(
+        'postgres_changes' as any,
+        { event, schema: 'public', table },
+        callback
+      )
       .subscribe();
   }
 

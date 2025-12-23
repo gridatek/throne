@@ -241,19 +241,11 @@ import { CardType, GamePlayer } from '../models/game.models';
   `]
 })
 export class GameComponent implements OnInit {
-  game = this.gameService.currentGame;
-  players = this.gameService.players;
-  gameState = this.gameService.gameState;
-  myHand = this.gameService.myHand;
-  recentActions = this.gameService.recentActions;
-
   selectedCard = signal<CardType | null>(null);
   targetPlayer = signal<string | null>(null);
   guessCard = signal<CardType | null>(null);
   playing = signal(false);
   error = signal('');
-
-  gameOver = computed(() => this.game()?.status === 'finished');
 
   private gameId: string | null = null;
 
@@ -263,6 +255,30 @@ export class GameComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute
   ) {}
+
+  get game() {
+    return this.gameService.currentGame;
+  }
+
+  get players() {
+    return this.gameService.players;
+  }
+
+  get gameState() {
+    return this.gameService.gameState;
+  }
+
+  get myHand() {
+    return this.gameService.myHand;
+  }
+
+  get recentActions() {
+    return this.gameService.recentActions;
+  }
+
+  get gameOver() {
+    return this.game()?.status === 'finished';
+  }
 
   ngOnInit(): void {
     this.gameId = this.route.snapshot.paramMap.get('id');

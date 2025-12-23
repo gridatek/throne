@@ -191,9 +191,6 @@ import { SupabaseService } from '../services/supabase.service';
   `]
 })
 export class LobbyComponent implements OnInit, OnDestroy {
-  game = this.gameService.currentGame;
-  players = this.gameService.players;
-
   starting = signal(false);
   error = signal('');
 
@@ -205,6 +202,14 @@ export class LobbyComponent implements OnInit, OnDestroy {
     private router: Router,
     private route: ActivatedRoute
   ) {}
+
+  get game() {
+    return this.gameService.currentGame;
+  }
+
+  get players() {
+    return this.gameService.players;
+  }
 
   ngOnInit(): void {
     this.gameId = this.route.snapshot.paramMap.get('id');

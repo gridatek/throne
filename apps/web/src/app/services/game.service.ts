@@ -278,10 +278,10 @@ export class GameService {
     const myHand = hands.find(h => h.player_id === playerId);
     const theirHand = hands.find(h => h.player_id === targetId);
 
-    if (!myHand || !theirHand) return;
+    if (!myHand || !theirHand || !myHand.cards[0] || !theirHand.cards[0]) return;
 
-    const myValue = CARD_VALUES[myHand.cards[0]];
-    const theirValue = CARD_VALUES[theirHand.cards[0]];
+    const myValue = CARD_VALUES[myHand.cards[0] as CardType];
+    const theirValue = CARD_VALUES[theirHand.cards[0] as CardType];
 
     if (myValue < theirValue) {
       await this.eliminatePlayer(playerId, state.game_id);
@@ -479,7 +479,8 @@ export class GameService {
     let winnerId = playerIds[0];
 
     for (const hand of hands) {
-      const value = CARD_VALUES[hand.cards[0]];
+      if (!hand.cards[0]) continue;
+      const value = CARD_VALUES[hand.cards[0] as CardType];
       if (value > maxValue) {
         maxValue = value;
         winnerId = hand.player_id;
@@ -492,12 +493,21 @@ export class GameService {
   private async endRound(gameId: string, roundNumber: number, winnerId: string): Promise<void> {
     const supabaseClient = this.supabase.getClient();
 
-    // Award token
-    await supabaseClient
+    // Award token - get current tokens and increment
+    const { data: player } = await supabaseClient
       .from('game_players')
-      .update({ tokens: supabaseClient.raw('tokens + 1') })
+      .select('tokens')
       .eq('game_id', gameId)
-      .eq('player_id', winnerId);
+      .eq('player_id', winnerId)
+      .single();
+
+    if (player) {
+      await supabaseClient
+        .from('game_players')
+        .update({ tokens: player.tokens + 1 })
+        .eq('game_id', gameId)
+        .eq('player_id', winnerId);
+    }
 
     // Check if game is over
     const game = this.currentGame();
