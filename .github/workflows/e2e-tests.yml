@@ -35,32 +35,26 @@ jobs:
 
       - name: Wait for Supabase to be ready
         run: |
-          echo "Waiting for Supabase services to be ready..."
-          sleep 15
+          echo "Waiting for Supabase API to be ready..."
+          sleep 10
 
-          # Check if Supabase is running
-          max_attempts=30
+          # Check if Supabase REST API is responding
+          max_attempts=20
           attempt=0
-          until curl -f http://localhost:54321/health 2>/dev/null || [ $attempt -eq $max_attempts ]; do
-            echo "Attempt $((attempt+1))/$max_attempts - Waiting for Supabase..."
-            sleep 2
+          until curl -f http://127.0.0.1:54321/rest/v1/ 2>/dev/null || [ $attempt -eq $max_attempts ]; do
+            echo "Attempt $((attempt+1))/$max_attempts - Waiting for Supabase API..."
+            sleep 3
             attempt=$((attempt+1))
           done
 
           if [ $attempt -eq $max_attempts ]; then
-            echo "Supabase health check failed"
-            echo "Checking Supabase logs..."
-            docker logs supabase_db_supabase-production 2>&1 | tail -50 || true
+            echo "Supabase API check failed"
+            echo "Checking docker containers..."
+            docker ps -a
             exit 1
           fi
 
           echo "Supabase is ready!"
-
-      - name: Verify Supabase status
-        run: |
-          echo "Checking Supabase status..."
-          cd apps/supabase/production
-          supabase status || true
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
