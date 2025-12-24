@@ -13,249 +13,256 @@ import { CardType, GamePlayer } from '../models/game.models';
   imports: [CommonModule, FormsModule, CardComponent],
   template: `
     <div class="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-red-100 p-4">
-      <div class="max-w-7xl mx-auto">
-        <!-- Header -->
-        <div class="bg-white rounded-xl shadow-lg p-4 mb-4">
-          <div class="flex justify-between items-center">
-            <div>
-              <h1 class="text-2xl font-bold text-purple-900">💌 Love Letter</h1>
-              <p class="text-sm text-gray-600">Round {{ gameState()?.round_number || 1 }}</p>
-            </div>
+      <!-- 3-Section Grid Container -->
+      <div class="grid grid-cols-1 md:grid-cols-[300px_1fr] lg:grid-cols-[280px_1fr_340px] gap-4 max-w-[1600px] mx-auto">
 
-            <!-- Turn Indicator -->
-            <div class="text-center">
-              @if (isMyTurn()) {
-                <div class="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg animate-pulse">
-                  <p class="text-xs font-medium">It's Your Turn!</p>
-                  <p class="text-2xl font-bold">🎯</p>
-                </div>
-              } @else {
-                <div class="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg">
-                  <p class="text-xs font-medium">Current Turn:</p>
-                  <p class="text-lg font-bold">{{ getCurrentTurnPlayerName() }}</p>
-                </div>
-              }
-            </div>
-
-            <div class="text-right">
-              <p class="text-sm text-gray-600">Deck</p>
-              <p class="text-2xl font-bold text-purple-600">{{ gameState()?.deck?.length || 0 }} 🃏</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Players -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          @for (player of players(); track player.id) {
-            <div
-              class="bg-white rounded-xl shadow-lg p-4"
-              [class.ring-4]="isCurrentTurn(player)"
-              [class.ring-yellow-400]="isCurrentTurn(player)"
-              [class.opacity-50]="player.is_eliminated"
-            >
-              <div class="flex items-center space-x-3 mb-2">
-                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-lg">
-                  {{ player.player_name.charAt(0).toUpperCase() }}
-                </div>
-                <div class="flex-1">
-                  <div class="flex items-center gap-2">
-                    <p class="font-bold text-gray-900">{{ player.player_name }}</p>
-                    @if (isMe(player)) {
-                      <span class="bg-blue-500 text-white text-xs px-2 py-0.5 rounded font-bold">YOU</span>
-                    }
+        <!-- LEFT SECTION: Players List -->
+        <aside class="bg-white rounded-xl shadow-lg p-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] overflow-y-auto">
+          <h2 class="text-xl font-bold text-gray-800 mb-4">Players</h2>
+          <div class="space-y-3">
+            @for (player of players(); track player.id) {
+              <div
+                class="bg-gray-50 rounded-lg p-3"
+                [class.ring-4]="isCurrentTurn(player)"
+                [class.ring-yellow-400]="isCurrentTurn(player)"
+                [class.opacity-50]="player.is_eliminated"
+              >
+                <div class="flex items-center space-x-3 mb-2">
+                  <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-lg shrink-0">
+                    {{ player.player_name.charAt(0).toUpperCase() }}
                   </div>
-                  <div class="flex items-center space-x-1">
-                    @for (token of [].constructor(player.tokens); track $index) {
-                      <span class="text-sm">❤️</span>
-                    }
-                  </div>
-                </div>
-              </div>
-
-              @if (player.is_eliminated) {
-                <div class="bg-red-100 text-red-700 text-xs font-medium px-2 py-1 rounded text-center">
-                  Eliminated
-                </div>
-              } @else if (isCurrentTurn(player)) {
-                <div class="bg-yellow-100 text-yellow-700 text-xs font-medium px-2 py-1 rounded text-center animate-pulse">
-                  Current Turn
-                </div>
-              } @else if (isProtected(player)) {
-                <div class="bg-green-100 text-green-700 text-xs font-medium px-2 py-1 rounded text-center">
-                  Protected 🛡️
-                </div>
-              }
-            </div>
-          }
-        </div>
-
-        <!-- Game Area -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <!-- My Hand -->
-          <div class="lg:col-span-2">
-            <div class="bg-white rounded-xl shadow-lg p-6">
-              <h2 class="text-xl font-bold text-gray-800 mb-4">Your Hand</h2>
-
-              <!-- Draw Card Button - Always visible -->
-              <div class="mb-6">
-                <button
-                  (click)="drawCard()"
-                  [disabled]="!canDraw()"
-                  class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-lg transition-colors text-lg"
-                >
-                  @if (drawing()) {
-                    <span>Drawing...</span>
-                  } @else if (!isMyTurn()) {
-                    <span>🃏 Wait for your turn</span>
-                  } @else if (hasDrawn()) {
-                    <span>✓ Card drawn - play a card</span>
-                  } @else {
-                    <span>🃏 Draw Card</span>
-                  }
-                </button>
-              </div>
-
-              @if (myHand()?.cards && myHand()!.cards.length > 0) {
-                <div class="flex flex-wrap gap-4 justify-center">
-                  @for (card of myHand()!.cards; track $index) {
-                    <app-card
-                      [card]="card"
-                      [selectable]="isMyTurn() && hasDrawn() && !selectedCard() && canSelectCard(card)"
-                      [selected]="selectedCard() === card"
-                      (cardClick)="selectCard(card)"
-                    />
-                  }
-                </div>
-
-                @if (selectedCard()) {
-                  <div class="mt-6 space-y-4">
-                    <!-- Target Selection -->
-                    @if (needsTarget()) {
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                          Select Target Player
-                        </label>
-                        <div class="grid grid-cols-2 gap-2">
-                          @for (player of getValidTargets(); track player.id) {
-                            <button
-                              (click)="targetPlayer.set(player.player_id)"
-                              [class.ring-2]="targetPlayer() === player.player_id"
-                              [class.ring-purple-500]="targetPlayer() === player.player_id"
-                              class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium"
-                            >
-                              {{ player.player_name }}
-                            </button>
-                          }
-                        </div>
-                      </div>
-                    }
-
-                    <!-- Guard Card Guess -->
-                    @if (selectedCard() === 'Guard' && targetPlayer()) {
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                          Guess Their Card
-                        </label>
-                        <div class="grid grid-cols-3 gap-2">
-                          @for (cardType of getGuessableCards(); track cardType) {
-                            <button
-                              (click)="guessCard.set(cardType)"
-                              [class.ring-2]="guessCard() === cardType"
-                              [class.ring-purple-500]="guessCard() === cardType"
-                              class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-sm"
-                            >
-                              {{ cardType }}
-                            </button>
-                          }
-                        </div>
-                      </div>
-                    }
-
-                    <!-- Play Button -->
-                    <div class="flex space-x-2">
-                      <button
-                        (click)="playSelectedCard()"
-                        [disabled]="!canPlayCard() || playing()"
-                        class="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-                      >
-                        @if (playing()) {
-                          <span>Playing...</span>
-                        } @else {
-                          <span>Play Card</span>
-                        }
-                      </button>
-
-                      <button
-                        (click)="cancelSelection()"
-                        class="px-6 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 rounded-lg transition-colors"
-                      >
-                        Cancel
-                      </button>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <p class="font-bold text-gray-900 truncate">{{ player.player_name }}</p>
+                      @if (isMe(player)) {
+                        <span class="bg-blue-500 text-white text-xs px-2 py-0.5 rounded font-bold shrink-0">YOU</span>
+                      }
+                    </div>
+                    <div class="flex items-center space-x-1">
+                      @for (token of [].constructor(player.tokens); track $index) {
+                        <span class="text-sm">❤️</span>
+                      }
                     </div>
                   </div>
-                }
-              } @else {
-                <div class="text-center py-12 text-gray-500">
-                  @if (isEliminated()) {
-                    <p class="text-xl">You've been eliminated this round!</p>
-                    <p class="text-sm mt-2">Wait for the next round to continue playing.</p>
-                  } @else {
-                    <p>Waiting for cards...</p>
-                  }
                 </div>
-              }
 
-              @if (!isMyTurn() && !isEliminated()) {
-                <div class="mt-4 bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg text-center">
-                  Waiting for other players...
-                </div>
-              }
-            </div>
-          </div>
-
-          <!-- Sidebar -->
-          <div class="space-y-4">
-            <!-- Discard Pile -->
-            <div class="bg-white rounded-xl shadow-lg p-4">
-              <h3 class="text-lg font-bold text-gray-800 mb-3">Discard Pile</h3>
-              @if (gameState()?.discard_pile && gameState()!.discard_pile.length > 0) {
-                <div class="flex flex-wrap gap-2">
-                  @for (card of gameState()!.discard_pile; track $index) {
-                    <span class="px-2 py-1 bg-gray-100 rounded text-sm">
-                      {{ card }}
-                    </span>
-                  }
-                </div>
-              } @else {
-                <p class="text-gray-500 text-sm">Empty</p>
-              }
-            </div>
-
-            <!-- Recent Actions -->
-            <div class="bg-white rounded-xl shadow-lg p-4">
-              <h3 class="text-lg font-bold text-gray-800 mb-3">Recent Actions</h3>
-              <div class="space-y-2 max-h-64 overflow-y-auto">
-                @for (action of recentActions(); track action.id) {
-                  <div class="text-xs bg-gray-50 p-2 rounded">
-                    <p class="font-medium">{{ getPlayerName(action.player_id) }}</p>
-                    <p class="text-gray-600">{{ formatAction(action) }}</p>
+                @if (player.is_eliminated) {
+                  <div class="bg-red-100 text-red-700 text-xs font-medium px-2 py-1 rounded text-center">
+                    Eliminated
                   </div>
-                } @empty {
-                  <p class="text-gray-500 text-sm">No actions yet</p>
+                } @else if (isCurrentTurn(player)) {
+                  <div class="bg-yellow-100 text-yellow-700 text-xs font-medium px-2 py-1 rounded text-center animate-pulse">
+                    Current Turn
+                  </div>
+                } @else if (isProtected(player)) {
+                  <div class="bg-green-100 text-green-700 text-xs font-medium px-2 py-1 rounded text-center">
+                    Protected 🛡️
+                  </div>
                 }
+              </div>
+            }
+          </div>
+        </aside>
+
+        <!-- MIDDLE SECTION: Game Desk -->
+        <main class="bg-white rounded-xl shadow-lg overflow-hidden">
+          <!-- Game Status Bar -->
+          <div class="bg-gradient-to-r from-purple-50 to-pink-50 p-4 border-b">
+            <div class="flex justify-between items-center">
+              <div>
+                <h1 class="text-2xl font-bold text-purple-900">💌 Love Letter</h1>
+                <p class="text-sm text-gray-600">Round {{ gameState()?.round_number || 1 }}</p>
+              </div>
+
+              <!-- Turn Indicator -->
+              <div class="text-center">
+                @if (isMyTurn()) {
+                  <div class="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg animate-pulse">
+                    <p class="text-xs font-medium">It's Your Turn!</p>
+                    <p class="text-2xl font-bold">🎯</p>
+                  </div>
+                } @else {
+                  <div class="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg">
+                    <p class="text-xs font-medium">Current Turn:</p>
+                    <p class="text-lg font-bold">{{ getCurrentTurnPlayerName() }}</p>
+                  </div>
+                }
+              </div>
+
+              <div class="text-right">
+                <p class="text-sm text-gray-600">Deck</p>
+                <p class="text-2xl font-bold text-purple-600">{{ gameState()?.deck?.length || 0 }} 🃏</p>
               </div>
             </div>
           </div>
-        </div>
 
-        @if (error()) {
-          <div class="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <!-- Your Hand Area -->
+          <div class="p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Your Hand</h2>
+
+            <!-- Draw Card Button -->
+            <div class="mb-6">
+              <button
+                (click)="drawCard()"
+                [disabled]="!canDraw()"
+                class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-lg transition-colors text-lg"
+              >
+                @if (drawing()) {
+                  <span>Drawing...</span>
+                } @else if (!isMyTurn()) {
+                  <span>🃏 Wait for your turn</span>
+                } @else if (hasDrawn()) {
+                  <span>✓ Card drawn - play a card</span>
+                } @else {
+                  <span>🃏 Draw Card</span>
+                }
+              </button>
+            </div>
+
+            @if (myHand()?.cards && myHand()!.cards.length > 0) {
+              <div class="flex flex-wrap gap-4 justify-center">
+                @for (card of myHand()!.cards; track $index) {
+                  <app-card
+                    [card]="card"
+                    [selectable]="isMyTurn() && hasDrawn() && !selectedCard() && canSelectCard(card)"
+                    [selected]="selectedCard() === card"
+                    (cardClick)="selectCard(card)"
+                  />
+                }
+              </div>
+
+              @if (selectedCard()) {
+                <div class="mt-6 space-y-4">
+                  <!-- Target Selection -->
+                  @if (needsTarget()) {
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Select Target Player
+                      </label>
+                      <div class="grid grid-cols-2 gap-2">
+                        @for (player of getValidTargets(); track player.id) {
+                          <button
+                            (click)="targetPlayer.set(player.player_id)"
+                            [class.ring-2]="targetPlayer() === player.player_id"
+                            [class.ring-purple-500]="targetPlayer() === player.player_id"
+                            class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium"
+                          >
+                            {{ player.player_name }}
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Guard Card Guess -->
+                  @if (selectedCard() === 'Guard' && targetPlayer()) {
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Guess Their Card
+                      </label>
+                      <div class="grid grid-cols-3 gap-2">
+                        @for (cardType of getGuessableCards(); track cardType) {
+                          <button
+                            (click)="guessCard.set(cardType)"
+                            [class.ring-2]="guessCard() === cardType"
+                            [class.ring-purple-500]="guessCard() === cardType"
+                            class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-sm"
+                          >
+                            {{ cardType }}
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Play Button -->
+                  <div class="flex space-x-2">
+                    <button
+                      (click)="playSelectedCard()"
+                      [disabled]="!canPlayCard() || playing()"
+                      class="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                    >
+                      @if (playing()) {
+                        <span>Playing...</span>
+                      } @else {
+                        <span>Play Card</span>
+                      }
+                    </button>
+
+                    <button
+                      (click)="cancelSelection()"
+                      class="px-6 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              }
+            } @else {
+              <div class="text-center py-12 text-gray-500">
+                @if (isEliminated()) {
+                  <p class="text-xl">You've been eliminated this round!</p>
+                  <p class="text-sm mt-2">Wait for the next round to continue playing.</p>
+                } @else {
+                  <p>Waiting for cards...</p>
+                }
+              </div>
+            }
+
+            @if (!isMyTurn() && !isEliminated()) {
+              <div class="mt-4 bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg text-center">
+                Waiting for other players...
+              </div>
+            }
+          </div>
+
+          <!-- Discard Pile (Bottom of Desk) -->
+          <div class="bg-gray-50 border-t p-4">
+            <h3 class="text-lg font-bold text-gray-800 mb-3">Discard Pile</h3>
+            @if (gameState()?.discard_pile && gameState()!.discard_pile.length > 0) {
+              <div class="flex flex-wrap gap-2">
+                @for (card of gameState()!.discard_pile; track $index) {
+                  <span class="px-2 py-1 bg-gray-100 rounded text-sm">
+                    {{ card }}
+                  </span>
+                }
+              </div>
+            } @else {
+              <p class="text-gray-500 text-sm">Empty</p>
+            }
+          </div>
+        </main>
+
+        <!-- RIGHT SECTION: Game Logs -->
+        <aside class="bg-white rounded-xl shadow-lg overflow-hidden lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] md:col-span-2 lg:col-span-1">
+          <div class="p-4 border-b bg-gray-50 sticky top-0">
+            <h2 class="text-lg font-bold text-gray-800">Game Log</h2>
+          </div>
+          <div class="p-4 space-y-2 overflow-y-auto max-h-[calc(100vh-8rem)]">
+            @for (action of recentActions(); track action.id) {
+              <div class="text-xs bg-gray-50 p-2 rounded">
+                <p class="font-medium">{{ getPlayerName(action.player_id) }}</p>
+                <p class="text-gray-600">{{ formatAction(action) }}</p>
+              </div>
+            } @empty {
+              <p class="text-gray-500 text-sm">No actions yet</p>
+            }
+          </div>
+        </aside>
+      </div>
+
+      <!-- Error Messages and Overlays -->
+      @if (error()) {
+        <div class="col-span-1 md:col-span-2 lg:col-span-3">
+          <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
             {{ error() }}
           </div>
-        }
+        </div>
+      }
 
-        @if (waitingForNextRound) {
-          <div class="mt-6 bg-gradient-to-r from-yellow-100 to-orange-100 border-4 border-yellow-400 rounded-2xl shadow-2xl p-6">
+      @if (waitingForNextRound) {
+        <div class="col-span-1 md:col-span-2 lg:col-span-3">
+          <div class="bg-gradient-to-r from-yellow-100 to-orange-100 border-4 border-yellow-400 rounded-2xl shadow-2xl p-6">
             <div class="text-center">
               <h2 class="text-3xl font-bold text-purple-900 mb-4">🏆 Round Over!</h2>
               @if (roundWinner) {
@@ -285,9 +292,10 @@ import { CardType, GamePlayer } from '../models/game.models';
               }
             </div>
           </div>
-        }
+        </div>
+      }
 
-        @if (gameOver) {
+      @if (gameOver) {
           <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
               <h2 class="text-3xl font-bold text-purple-900 mb-4">🎉 Game Over!</h2>
@@ -302,8 +310,7 @@ import { CardType, GamePlayer } from '../models/game.models';
               </button>
             </div>
           </div>
-        }
-      </div>
+      }
     </div>
   `,
   styles: [`
