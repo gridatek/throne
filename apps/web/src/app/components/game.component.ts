@@ -145,39 +145,45 @@ import { CardType, GamePlayer } from '../models/game.models';
           <!-- Your Hand Area -->
           <div class="p-6">
             <!-- Deck and Discard Pile -->
-            <div class="flex items-center justify-center gap-8 mb-8">
-              <!-- Draw Deck (Face Down) -->
-              <div class="text-center">
-                <div class="relative">
-                  <button
-                    (click)="drawCard()"
-                    [disabled]="!canDraw()"
-                    class="relative group transition-transform hover:scale-105 disabled:hover:scale-100"
-                    [class.cursor-pointer]="canDraw()"
-                    [class.cursor-not-allowed]="!canDraw()"
-                  >
-                    <!-- Stacked deck effect -->
-                    <div class="absolute top-1 left-1 w-32 h-44 bg-purple-400 rounded-lg opacity-60"></div>
-                    <div class="absolute top-0.5 left-0.5 w-32 h-44 bg-purple-500 rounded-lg opacity-80"></div>
-
-                    <!-- Main deck card -->
-                    <div class="relative w-32 h-44 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg shadow-xl border-4 border-white flex flex-col items-center justify-center">
-                      <div class="text-6xl mb-2">🃏</div>
-                      <div class="text-white font-bold text-sm">{{ gameState()?.deck?.length || 0 }}</div>
-                      @if (!canDraw()) {
-                        <div class="absolute inset-0 bg-gray-900/50 rounded-lg flex items-center justify-center">
-                          @if (hasDrawn()) {
-                            <span class="text-white text-xs font-bold px-2 py-1 bg-green-600 rounded">✓ Drawn</span>
-                          } @else if (!isMyTurn()) {
-                            <span class="text-white text-xs font-bold px-2 py-1 bg-gray-600 rounded">Wait</span>
-                          }
-                        </div>
-                      }
-                    </div>
-                  </button>
-                </div>
-                <p class="text-xs text-gray-600 mt-2 font-semibold">Draw Deck</p>
+            <div class="mb-8">
+              <!-- Cards Remaining Counter -->
+              <div class="text-center mb-4">
+                <p class="text-sm text-gray-600 font-semibold">Cards Remaining</p>
+                <p class="text-3xl font-bold text-purple-600">{{ gameState()?.deck?.length || 0 }}</p>
               </div>
+
+              <div class="flex items-center justify-center gap-8">
+                <!-- Draw Deck (Face Down) -->
+                <div class="text-center">
+                  <div class="relative">
+                    <button
+                      (click)="drawCard()"
+                      [disabled]="!canDraw()"
+                      class="relative group transition-transform hover:scale-105 disabled:hover:scale-100"
+                      [class.cursor-pointer]="canDraw()"
+                      [class.cursor-not-allowed]="!canDraw()"
+                    >
+                      <!-- Stacked deck effect -->
+                      <div class="absolute top-1 left-1 w-32 h-44 bg-purple-400 rounded-lg opacity-60"></div>
+                      <div class="absolute top-0.5 left-0.5 w-32 h-44 bg-purple-500 rounded-lg opacity-80"></div>
+
+                      <!-- Main deck card -->
+                      <div class="relative w-32 h-44 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg shadow-xl border-4 border-white flex items-center justify-center">
+                        <div class="text-7xl">🃏</div>
+                        @if (!canDraw()) {
+                          <div class="absolute inset-0 bg-gray-900/50 rounded-lg flex items-center justify-center">
+                            @if (hasDrawn()) {
+                              <span class="text-white text-xs font-bold px-2 py-1 bg-green-600 rounded">✓ Drawn</span>
+                            } @else if (!isMyTurn()) {
+                              <span class="text-white text-xs font-bold px-2 py-1 bg-gray-600 rounded">Wait</span>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </button>
+                  </div>
+                  <p class="text-xs text-gray-600 mt-2 font-semibold">Draw Deck</p>
+                </div>
 
               <!-- Discard Pile (Face Up) -->
               <div class="text-center">
@@ -204,6 +210,7 @@ import { CardType, GamePlayer } from '../models/game.models';
                 </div>
                 <p class="text-xs text-gray-600 mt-2 font-semibold">Discard Pile</p>
               </div>
+            </div>
             </div>
 
             @if (myHand()?.cards && myHand()!.cards.length > 0) {
