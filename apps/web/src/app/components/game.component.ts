@@ -296,6 +296,16 @@ import { CardType, GamePlayer } from '../models/game.models';
                 }
               </div>
 
+              <!-- Priest Revelation Display -->
+              @if (getLastPriestRevelation(); as revelation) {
+                <div class="mt-4 px-4 py-3 rounded-lg border-2 border-blue-400 bg-blue-50 text-center">
+                  <p class="text-sm font-semibold text-blue-900 mb-2">👁️ You saw {{ revelation.playerName }}'s card:</p>
+                  <div class="inline-block px-4 py-2 bg-blue-100 text-blue-900 rounded-lg text-lg font-bold border-2 border-blue-500">
+                    {{ revelation.card }}
+                  </div>
+                </div>
+              }
+
               <!-- Always Visible Status Message -->
               <div class="mt-4 px-4 py-3 rounded-lg text-center font-medium"
                 [class.bg-purple-50]="isSpectator()"
@@ -972,6 +982,32 @@ export class GameComponent implements OnInit, OnDestroy {
         if (!myNextAction) {
           return action.details['revealed_card'] as CardType;
         }
+      }
+    }
+
+    return null;
+  }
+
+  getLastPriestRevelation(): { playerName: string; card: CardType } | null {
+    const myId = this.supabaseService.getCurrentPlayerId();
+    const actions = this.recentActions();
+    const currentRound = this.gameState()?.round_number;
+
+    // Find the most recent Priest action I played in current round
+    for (let i = actions.length - 1; i >= 0; i--) {
+      const action = actions[i];
+
+      if (action.round_number === currentRound &&
+          action.card_played === 'Priest' &&
+          action.player_id === myId &&
+          action.target_player_id &&
+          action.details?.['revealed_card'] &&
+          !action.details?.['target_protected']) {
+
+        return {
+          playerName: this.getPlayerName(action.target_player_id),
+          card: action.details['revealed_card'] as CardType
+        };
       }
     }
 
