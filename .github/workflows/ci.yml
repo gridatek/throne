@@ -33,12 +33,6 @@ jobs:
       - name: Start Supabase
         run: npx nx run supabase:start
 
-      - name: Apply migrations
-        run: |
-          echo "Applying migrations manually..."
-          docker exec -i supabase_db_local psql -U postgres -d postgres < apps/supabase/.generated/local/migrations/20251223000001_create_love_letter_schema.sql
-          echo "✅ Migrations applied successfully"
-
       - name: Wait for Supabase to be ready
         run: |
           echo "Waiting for Supabase API to be ready..."
