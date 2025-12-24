@@ -46,4 +46,6 @@ Thumbs.db
 __screenshots__/
 
 # Runtime config (generated in CI or locally)
+apps/web/public/assets/config.json
+apps/admin/public/assets/config.json
 apps/web/src/assets/config.json

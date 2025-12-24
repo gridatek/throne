@@ -1,0 +1,111 @@
+name: Deploy to Production
+
+on:
+  # push:
+  #   branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy Apps and Database
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      # Deploy Supabase migrations first
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy Supabase migrations
+        working-directory: apps/supabase/production
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          # Link to Supabase project
+          supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+
+          # Push migrations to production
+          supabase db push
+
+          echo "✅ Supabase migrations deployed"
+
+      # Create production config files
+      - name: Create production config for web
+        run: |
+          mkdir -p apps/web/public/assets
+          cat > apps/web/public/assets/config.json << 'EOF'
+          {
+            "production": true,
+            "supabase": {
+              "url": "${{ secrets.SUPABASE_URL }}",
+              "anonKey": "${{ secrets.SUPABASE_ANON_KEY }}"
+            }
+          }
+          EOF
+          echo "✅ Web config created"
+
+      - name: Create production config for admin
+        run: |
+          mkdir -p apps/admin/public/assets
+          cat > apps/admin/public/assets/config.json << 'EOF'
+          {
+            "production": true,
+            "supabase": {
+              "url": "${{ secrets.SUPABASE_URL }}",
+              "anonKey": "${{ secrets.SUPABASE_ANON_KEY }}"
+            }
+          }
+          EOF
+          echo "✅ Admin config created"
+
+      # Build applications
+      - name: Build web app
+        run: npx nx build web --configuration=production
+
+      - name: Build admin app
+        run: npx nx build admin --configuration=production
+
+      # Deploy to Cloudflare Pages
+      - name: Deploy web to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: throne-web
+          directory: dist/apps/web/browser
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
+
+      - name: Deploy admin to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: throne-admin
+          directory: dist/apps/admin/browser
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
+
+      - name: Deployment summary
+        run: |
+          echo "🎉 Deployment completed successfully!"
+          echo ""
+          echo "📦 Deployed components:"
+          echo "  - Web app: https://throne-web.pages.dev"
+          echo "  - Admin app: https://throne-admin.pages.dev"
+          echo "  - Supabase: ${{ secrets.SUPABASE_URL }}"
