@@ -228,7 +228,7 @@ import { CardType, GamePlayer } from '../models/game.models';
                 [class.text-blue-800]="!isSpectator() && !isMyTurn() && !isEliminated()"
                 class="border">
                 @if (isSpectator()) {
-                  <span>👁️ Spectator Mode - Watching {{ getCurrentTurnPlayerName() }}'s turn</span>
+                  <span>👁️ Spectator Mode - Waiting for {{ getCurrentTurnPlayerName() }} to play...</span>
                 } @else if (isEliminated()) {
                   <span>❌ You've been eliminated - wait for next round</span>
                 } @else if (isMyTurn() && !hasDrawn()) {
@@ -238,7 +238,7 @@ import { CardType, GamePlayer } from '../models/game.models';
                 } @else if (isMyTurn() && selectedCard()) {
                   <span>🎯 Your turn - Complete your card action</span>
                 } @else {
-                  <span>⏳ Waiting for {{ getCurrentTurnPlayerName() }}...</span>
+                  <span>⏳ Waiting for {{ getCurrentTurnPlayerName() }} to play...</span>
                 }
               </div>
 

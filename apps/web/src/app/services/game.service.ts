@@ -359,11 +359,8 @@ export class GameService {
         } else {
           const correctGuess = await this.wasGuardGuessCorrect(request.target_player_id!, request.guess_card!, state);
           actionDetails.correct_guess = correctGuess;
-          if (correctGuess) {
-            message = `${playerName} played Guard and guessed ${request.guess_card!} - CORRECT! ${targetName} is eliminated.`;
-          } else {
-            message = `${playerName} played Guard and guessed ${request.guess_card!} - Wrong! ${targetName} is safe.`;
-          }
+          // Don't reveal if guess was correct - let elimination speak for itself
+          message = `${playerName} played Guard on ${targetName}`;
         }
         break;
 
@@ -561,6 +558,9 @@ export class GameService {
   }
 
   private async wasGuardGuessCorrect(targetId: string, guessCard: CardType, state: GameState): Promise<boolean> {
+    // Can't guess Guard - always wrong even if target has Guard
+    if (guessCard === 'Guard') return false;
+
     const supabaseClient = this.supabase.getClient();
     const { data: targetHand } = await supabaseClient
       .from('player_hands')
