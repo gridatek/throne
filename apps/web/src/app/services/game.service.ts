@@ -166,7 +166,92 @@ export class GameService {
     // Initialize first round
     await this.initializeRound(gameId, 1, reorderedPlayers.map(p => p.player_id));
 
+    // Log game start
+    await supabaseClient
+      .from('game_actions')
+      .insert({
+        game_id: gameId,
+        round_number: 1,
+        turn_number: 0,
+        player_id: startingPlayerId,
+        action_type: 'win_round',
+        details: {
+          message: `Game started! Round 1 begins with ${players.find(p => p.player_id === startingPlayerId)?.player_name} going first.`,
+          game_start: true
+        }
+      });
+
     // Note: Player must manually draw their first card
+  }
+
+  async startNextRound(gameId: string): Promise<void> {
+    const supabaseClient = this.supabase.getClient();
+    const playerId = this.supabase.getCurrentPlayerId();
+
+    // Verify caller is the host
+    const { data: player } = await supabaseClient
+      .from('game_players')
+      .select('is_host')
+      .eq('game_id', gameId)
+      .eq('player_id', playerId)
+      .single();
+
+    if (!player?.is_host) {
+      throw new Error('Only the host can start a new round');
+    }
+
+    // Get current game state
+    const game = this.currentGame();
+    if (!game) throw new Error('No active game');
+
+    const previousRound = game.current_round - 1;
+
+    // Get the winner of the previous round
+    const { data: previousState } = await supabaseClient
+      .from('game_state')
+      .select('round_winner_id')
+      .eq('game_id', gameId)
+      .eq('round_number', previousRound)
+      .single();
+
+    if (!previousState?.round_winner_id) {
+      throw new Error('Cannot start next round: previous round has no winner');
+    }
+
+    // Get all players and reorder so winner goes first
+    const { data: players } = await supabaseClient
+      .from('game_players')
+      .select()
+      .eq('game_id', gameId)
+      .order('join_order');
+
+    if (!players) throw new Error('No players found');
+
+    // Reorder players so the winner goes first
+    const winnerIndex = players.findIndex(p => p.player_id === previousState.round_winner_id);
+    const reorderedPlayers = [
+      ...players.slice(winnerIndex),
+      ...players.slice(0, winnerIndex)
+    ];
+
+    // Initialize the new round
+    await this.initializeRound(gameId, game.current_round, reorderedPlayers.map(p => p.player_id));
+
+    // Log round start
+    const winnerName = players.find(p => p.player_id === previousState.round_winner_id)?.player_name;
+    await supabaseClient
+      .from('game_actions')
+      .insert({
+        game_id: gameId,
+        round_number: game.current_round,
+        turn_number: 0,
+        player_id: previousState.round_winner_id,
+        action_type: 'win_round',
+        details: {
+          message: `Round ${game.current_round} has started! ${winnerName} (previous round winner) goes first.`,
+          round_start: true
+        }
+      });
   }
 
   async playCard(request: PlayCardRequest): Promise<void> {
@@ -250,20 +335,117 @@ export class GameService {
       .update({ discard_pile: newDiscard })
       .eq('id', state.id);
 
-    // Prepare action details
+    // Get player names for better logging
+    const { data: players } = await supabaseClient
+      .from('game_players')
+      .select('player_id, player_name')
+      .eq('game_id', request.game_id);
+
+    const getPlayerName = (pid: string) => players?.find(p => p.player_id === pid)?.player_name || 'Unknown';
+    const playerName = getPlayerName(playerId);
+    const targetName = request.target_player_id ? getPlayerName(request.target_player_id) : '';
+
+    // Prepare action details with descriptive messages
+    // Store secret information separately for involved players only
     const actionDetails: any = {};
-    if (request.guess_card) {
-      actionDetails.guess_card = request.guess_card;
+    let message = '';
+
+    switch (request.card) {
+      case 'Guard':
+        actionDetails.guess_card = request.guess_card;
+        if (this.targetWasProtected) {
+          actionDetails.target_protected = true;
+          message = `${playerName} played Guard on ${targetName}, but ${targetName} is protected by Handmaid. No effect.`;
+        } else {
+          const correctGuess = await this.wasGuardGuessCorrect(request.target_player_id!, request.guess_card!, state);
+          actionDetails.correct_guess = correctGuess;
+          if (correctGuess) {
+            message = `${playerName} played Guard and guessed ${request.guess_card!} - CORRECT! ${targetName} is eliminated.`;
+          } else {
+            message = `${playerName} played Guard and guessed ${request.guess_card!} - Wrong! ${targetName} is safe.`;
+          }
+        }
+        break;
+
+      case 'Priest':
+        if (this.lastPriestReveal) {
+          // Store revealed card for the player who played Priest only
+          actionDetails.revealed_card = this.lastPriestReveal.card;
+          if (this.targetWasProtected) {
+            actionDetails.target_protected = true;
+            message = `${playerName} played Priest on ${targetName}, but ${targetName} is protected. No effect.`;
+          } else {
+            // Public message doesn't reveal the card
+            message = `${playerName} played Priest and looked at ${targetName}'s card.`;
+          }
+        }
+        break;
+
+      case 'Baron':
+        if (this.lastBaronResult) {
+          // Store card values for involved players only
+          actionDetails.baron_result = this.lastBaronResult;
+          if (this.targetWasProtected) {
+            actionDetails.target_protected = true;
+            message = `${playerName} played Baron on ${targetName}, but ${targetName} is protected. No effect.`;
+          } else {
+            if (this.lastBaronResult.winner === null) {
+              // Tie - no one is eliminated
+              message = `${playerName} played Baron against ${targetName} - It's a tie! No one is eliminated.`;
+            } else if (this.lastBaronResult.winner === playerId) {
+              message = `${playerName} played Baron against ${targetName}. ${targetName} is eliminated!`;
+            } else {
+              message = `${playerName} played Baron against ${targetName}. ${playerName} is eliminated!`;
+            }
+          }
+        }
+        break;
+
+      case 'Handmaid':
+        message = `${playerName} played Handmaid and is now protected until their next turn.`;
+        break;
+
+      case 'Prince':
+        if (this.targetWasProtected) {
+          actionDetails.target_protected = true;
+          message = `${playerName} played Prince on ${targetName}, but ${targetName} is protected. No effect.`;
+        } else if (request.target_player_id === playerId) {
+          message = `${playerName} played Prince on themselves! They discarded their card and drew a new one.`;
+        } else {
+          message = `${playerName} played Prince on ${targetName}. ${targetName} discarded and drew a new card.`;
+        }
+        if (this.lastPrinceDiscard) {
+          // Store the discarded card
+          actionDetails.discarded_card = this.lastPrinceDiscard;
+          // Only reveal if it's Princess (since they get eliminated - public knowledge)
+          if (this.lastPrinceDiscard === 'Princess') {
+            message += ` ${targetName} discarded the Princess and is eliminated!`;
+          }
+        }
+        break;
+
+      case 'King':
+        if (this.targetWasProtected) {
+          actionDetails.target_protected = true;
+          message = `${playerName} played King on ${targetName}, but ${targetName} is protected. No effect.`;
+        } else {
+          message = `${playerName} played King and swapped hands with ${targetName}.`;
+        }
+        break;
+
+      case 'Countess':
+        message = `${playerName} played Countess.`;
+        break;
+
+      case 'Princess':
+        message = `${playerName} played Princess and is eliminated!`;
+        break;
+
+      default:
+        message = `${playerName} played ${request.card}`;
     }
-    if (this.lastPriestReveal && request.card === 'Priest') {
-      actionDetails.revealed_card = this.lastPriestReveal.card;
-    }
-    if (this.targetWasProtected) {
-      actionDetails.target_protected = true;
-    }
-    if (this.lastBaronResult && request.card === 'Baron') {
-      actionDetails.baron_result = this.lastBaronResult;
-    }
+
+    actionDetails.message = message;
 
     // Log action
     await supabaseClient
@@ -376,6 +558,19 @@ export class GameService {
       .maybeSingle();
 
     return hand?.is_protected || false;
+  }
+
+  private async wasGuardGuessCorrect(targetId: string, guessCard: CardType, state: GameState): Promise<boolean> {
+    const supabaseClient = this.supabase.getClient();
+    const { data: targetHand } = await supabaseClient
+      .from('player_hands')
+      .select()
+      .eq('game_id', state.game_id)
+      .eq('round_number', state.round_number)
+      .eq('player_id', targetId)
+      .single();
+
+    return targetHand ? targetHand.cards.includes(guessCard) : false;
   }
 
   private async handleGuard(targetId: string, guessCard: CardType, state: GameState): Promise<void> {
@@ -727,35 +922,52 @@ export class GameService {
   private async endRound(gameId: string, roundNumber: number, winnerId: string): Promise<void> {
     const supabaseClient = this.supabase.getClient();
 
-    // Award token - get current tokens and increment
-    const { data: player } = await supabaseClient
+    // Get winner's name for logging
+    const { data: winnerPlayer } = await supabaseClient
       .from('game_players')
-      .select('tokens')
+      .select('player_name, tokens')
       .eq('game_id', gameId)
       .eq('player_id', winnerId)
       .single();
 
-    if (player) {
-      await supabaseClient
-        .from('game_players')
-        .update({ tokens: player.tokens + 1 })
-        .eq('game_id', gameId)
-        .eq('player_id', winnerId);
-    }
+    // Award token - get current tokens and increment
+    const newTokenCount = (winnerPlayer?.tokens || 0) + 1;
+
+    await supabaseClient
+      .from('game_players')
+      .update({ tokens: newTokenCount })
+      .eq('game_id', gameId)
+      .eq('player_id', winnerId);
+
+    // Update game_state with round winner
+    await supabaseClient
+      .from('game_state')
+      .update({ round_winner_id: winnerId })
+      .eq('game_id', gameId)
+      .eq('round_number', roundNumber);
+
+    // Log round end
+    const gameState = this.gameState();
+    await supabaseClient
+      .from('game_actions')
+      .insert({
+        game_id: gameId,
+        round_number: roundNumber,
+        turn_number: gameState?.turn_number || 0,
+        player_id: winnerId,
+        action_type: 'win_round',
+        details: {
+          message: `${winnerPlayer?.player_name} won round ${roundNumber} and earned a token! (Total: ${newTokenCount})`,
+          tokens_earned: newTokenCount
+        }
+      });
 
     // Check if game is over
     const game = this.currentGame();
     if (!game) return;
 
-    const { data: winner } = await supabaseClient
-      .from('game_players')
-      .select()
-      .eq('game_id', gameId)
-      .eq('player_id', winnerId)
-      .single();
-
-    if (winner && winner.tokens >= game.winning_tokens) {
-      // Game over
+    if (newTokenCount >= game.winning_tokens) {
+      // Game over - winner has enough tokens
       await supabaseClient
         .from('games')
         .update({
@@ -764,25 +976,42 @@ export class GameService {
           winner_id: winnerId
         })
         .eq('id', gameId);
+
+      // Log game end
+      await supabaseClient
+        .from('game_actions')
+        .insert({
+          game_id: gameId,
+          round_number: roundNumber,
+          turn_number: gameState?.turn_number || 0,
+          player_id: winnerId,
+          action_type: 'win_round',
+          details: {
+            message: `🎉 ${winnerPlayer?.player_name} wins the game with ${newTokenCount} tokens!`,
+            game_over: true
+          }
+        });
     } else {
-      // Start next round
-      const { data: players } = await supabaseClient
-        .from('game_players')
-        .select()
-        .eq('game_id', gameId)
-        .order('join_order');
+      // Increment current_round and wait for host to start next round
+      await supabaseClient
+        .from('games')
+        .update({ current_round: roundNumber + 1 })
+        .eq('id', gameId);
 
-      if (players) {
-        // Reorder players so the winner goes first
-        const winnerIndex = players.findIndex(p => p.player_id === winnerId);
-        const reorderedPlayers = [
-          ...players.slice(winnerIndex),
-          ...players.slice(0, winnerIndex)
-        ];
-
-        await this.initializeRound(gameId, roundNumber + 1, reorderedPlayers.map(p => p.player_id));
-        // Note: Winner must manually draw their first card
-      }
+      // Log waiting for next round
+      await supabaseClient
+        .from('game_actions')
+        .insert({
+          game_id: gameId,
+          round_number: roundNumber,
+          turn_number: gameState?.turn_number || 0,
+          player_id: winnerId,
+          action_type: 'win_round',
+          details: {
+            message: `Waiting for host to start Round ${roundNumber + 1}...`,
+            waiting_for_host: true
+          }
+        });
     }
   }
 

@@ -254,6 +254,39 @@ import { CardType, GamePlayer } from '../models/game.models';
           </div>
         }
 
+        @if (waitingForNextRound) {
+          <div class="mt-6 bg-gradient-to-r from-yellow-100 to-orange-100 border-4 border-yellow-400 rounded-2xl shadow-2xl p-6">
+            <div class="text-center">
+              <h2 class="text-3xl font-bold text-purple-900 mb-4">🏆 Round Over!</h2>
+              @if (roundWinner) {
+                <p class="text-xl mb-2">
+                  {{ roundWinner.player_name }} won this round!
+                </p>
+                <p class="text-lg mb-6 text-gray-600">
+                  Tokens: {{ roundWinner.tokens }} / {{ game()?.winning_tokens }}
+                </p>
+              }
+              @if (isHost) {
+                <button
+                  (click)="startNextRound()"
+                  [disabled]="startingNextRound()"
+                  class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-lg transition-colors shadow-lg"
+                >
+                  @if (startingNextRound()) {
+                    <span>Starting Round {{ game()?.current_round }}...</span>
+                  } @else {
+                    <span>Start Round {{ game()?.current_round }}</span>
+                  }
+                </button>
+              } @else {
+                <div class="bg-blue-50 border-2 border-blue-400 text-blue-800 px-4 py-3 rounded-lg shadow-md">
+                  <p class="font-semibold">Waiting for host to start Round {{ game()?.current_round }}...</p>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
         @if (gameOver) {
           <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
@@ -318,6 +351,52 @@ export class GameComponent implements OnInit, OnDestroy {
 
   get gameOver() {
     return this.game()?.status === 'finished';
+  }
+
+  get isHost() {
+    const myId = this.supabaseService.getCurrentPlayerId();
+    const me = this.players().find(p => p.player_id === myId);
+    return me?.is_host || false;
+  }
+
+  get waitingForNextRound() {
+    const game = this.game();
+    const state = this.gameState();
+
+    // We're waiting for next round if:
+    // 1. Game is in progress
+    // 2. Current round in game is higher than the round in game_state
+    //    (meaning endRound was called but initializeRound wasn't)
+    if (game?.status !== 'in_progress') return false;
+    if (!game || !state) return false;
+
+    return game.current_round > state.round_number;
+  }
+
+  get roundWinner() {
+    const state = this.gameState();
+    if (!state?.round_winner_id) return null;
+    return this.players().find(p => p.player_id === state.round_winner_id);
+  }
+
+  startingNextRound = signal(false);
+
+  async startNextRound(): Promise<void> {
+    if (!this.gameId || !this.isHost) return;
+
+    this.startingNextRound.set(true);
+    this.error.set('');
+
+    try {
+      await this.gameService.startNextRound(this.gameId);
+
+      // Reload game data
+      await this.gameService.loadGameData(this.gameId);
+    } catch (err: any) {
+      this.error.set(err.message || 'Failed to start next round');
+    } finally {
+      this.startingNextRound.set(false);
+    }
   }
 
   async ngOnInit(): Promise<void> {
@@ -523,9 +602,42 @@ export class GameComponent implements OnInit, OnDestroy {
   }
 
   formatAction(action: any): string {
+    const myId = this.supabaseService.getCurrentPlayerId();
     const playerName = this.getPlayerName(action.player_id);
     const targetName = action.target_player_id ? this.getPlayerName(action.target_player_id) : '';
-    const myId = this.supabaseService.getCurrentPlayerId();
+
+    // Check if I'm involved in this action
+    const isInvolved = action.player_id === myId || action.target_player_id === myId;
+
+    // If action has a detailed message in details, use that as base
+    if (action.details?.message) {
+      let message = action.details.message;
+
+      // Add secret information only for involved players
+      if (isInvolved) {
+        // Priest: Show revealed card to the player who played it
+        if (action.card_played === 'Priest' && action.player_id === myId && action.details?.revealed_card && !action.details?.target_protected) {
+          message += ` [You saw: ${action.details.revealed_card}]`;
+        }
+
+        // Baron: Show card values to involved players
+        if (action.card_played === 'Baron' && action.details?.baron_result && !action.details?.target_protected) {
+          const result = action.details.baron_result;
+          const myCard = result.myCard;
+          const theirCard = result.theirCard;
+          message += ` [${playerName}: ${myCard}, ${targetName}: ${theirCard}]`;
+        }
+
+        // Prince: Show discarded card to involved players (unless it was Princess - already public)
+        if (action.card_played === 'Prince' && action.details?.discarded_card && action.details.discarded_card !== 'Princess' && !action.details?.target_protected) {
+          message += ` [Discarded: ${action.details.discarded_card}]`;
+        }
+      }
+
+      return message;
+    }
+
+    // Fallback to old formatting for backwards compatibility
 
     switch (action.card_played) {
       case 'Guard':
