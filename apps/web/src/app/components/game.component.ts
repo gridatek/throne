@@ -162,6 +162,9 @@ import { CardType, GamePlayer } from '../models/game.models';
                     <p class="text-2xl mb-3 font-bold text-gray-800">
                       {{ roundWinner.player_name }} won this round!
                     </p>
+                    <p class="text-lg mb-3 font-semibold text-purple-700">
+                      {{ getRoundWinReason() }}
+                    </p>
                     <p class="text-xl mb-8 text-gray-700">
                       Tokens: {{ roundWinner.tokens }} / {{ game()?.winning_tokens }}
                     </p>
@@ -508,6 +511,30 @@ export class GameComponent implements OnInit, OnDestroy {
     const state = this.gameState();
     if (!state?.round_winner_id) return null;
     return this.players().find(p => p.player_id === state.round_winner_id);
+  }
+
+  getRoundWinReason(): string {
+    const actions = this.recentActions();
+    const state = this.gameState();
+    const currentRound = state?.round_number;
+
+    // Find the win_round action for the current round
+    for (let i = actions.length - 1; i >= 0; i--) {
+      const action = actions[i];
+      if (action.round_number === currentRound && action.action_type === 'win_round') {
+        // Check if won by elimination
+        if (action.details?.['won_by_elimination']) {
+          return '🎯 Last player standing!';
+        }
+
+        // Won by highest card
+        if (action.details?.['winning_card']) {
+          return `👑 Highest card: ${action.details['winning_card']}`;
+        }
+      }
+    }
+
+    return 'Winner!';
   }
 
   startingNextRound = signal(false);

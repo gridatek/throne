@@ -983,10 +983,35 @@ export class GameService {
     // Get winner's name for logging
     const { data: winnerPlayer } = await supabaseClient
       .from('game_players')
-      .select('player_name, tokens')
+      .select('player_name, tokens, is_eliminated')
       .eq('game_id', gameId)
       .eq('player_id', winnerId)
       .single();
+
+    // Count non-eliminated players to determine win reason
+    const { data: allPlayers } = await supabaseClient
+      .from('game_players')
+      .select('is_eliminated')
+      .eq('game_id', gameId);
+
+    const activePlayers = allPlayers?.filter(p => !p.is_eliminated) || [];
+    const wonByElimination = activePlayers.length === 1;
+
+    // Get winner's card if they won by highest card
+    let winningCard: CardType | null = null;
+    if (!wonByElimination) {
+      const { data: winnerHand } = await supabaseClient
+        .from('player_hands')
+        .select('cards')
+        .eq('game_id', gameId)
+        .eq('round_number', roundNumber)
+        .eq('player_id', winnerId)
+        .single();
+
+      if (winnerHand && winnerHand.cards && winnerHand.cards.length > 0) {
+        winningCard = winnerHand.cards[0] as CardType;
+      }
+    }
 
     // Award token - get current tokens and increment
     const newTokenCount = (winnerPlayer?.tokens || 0) + 1;
@@ -1004,8 +1029,18 @@ export class GameService {
       .eq('game_id', gameId)
       .eq('round_number', roundNumber);
 
-    // Log round end
+    // Log round end with win reason
     const gameState = this.gameState();
+    const actionDetails: any = {
+      message: `${winnerPlayer?.player_name} won round ${roundNumber} and earned a token! (Total: ${newTokenCount})`,
+      tokens_earned: newTokenCount,
+      won_by_elimination: wonByElimination
+    };
+
+    if (winningCard) {
+      actionDetails.winning_card = winningCard;
+    }
+
     await supabaseClient
       .from('game_actions')
       .insert({
@@ -1014,10 +1049,7 @@ export class GameService {
         turn_number: gameState?.turn_number || 0,
         player_id: winnerId,
         action_type: 'win_round',
-        details: {
-          message: `${winnerPlayer?.player_name} won round ${roundNumber} and earned a token! (Total: ${newTokenCount})`,
-          tokens_earned: newTokenCount
-        }
+        details: actionDetails
       });
 
     // Check if game is over
