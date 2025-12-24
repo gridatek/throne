@@ -524,12 +524,12 @@ export class GameComponent implements OnInit, OnDestroy {
       if (action.round_number === currentRound && action.action_type === 'win_round') {
         // Check if won by elimination
         if (action.details?.['won_by_elimination']) {
-          return '🎯 Last player standing!';
+          return 'Last player standing';
         }
 
         // Won by highest card
         if (action.details?.['winning_card']) {
-          return `👑 Highest card: ${action.details['winning_card']}`;
+          return `Won by highest card: ${action.details['winning_card']}`;
         }
       }
     }
