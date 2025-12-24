@@ -116,9 +116,9 @@ test.describe('Love Letter Game', () => {
 
       await player2.waitForURL(/\/lobby\/.+/);
 
-      // Both players should see each other
-      await expect(player1.locator('text=Player 2')).toBeVisible();
-      await expect(player2.locator('text=Player 1')).toBeVisible();
+      // Both players should see each other in the player list
+      await expect(player1.getByRole('paragraph').filter({ hasText: 'Player 2' })).toBeVisible();
+      await expect(player2.getByRole('paragraph').filter({ hasText: 'Player 1' })).toBeVisible();
 
       // Player 1 should see enabled start button
       const startButton = player1.locator('button:has-text("Start Game")');
