@@ -926,6 +926,13 @@ export class GameComponent implements OnInit, OnDestroy {
           action.details?.['eliminated_card']) {
         discards.push(action.details['eliminated_card']);
       }
+
+      // Final card at round end (for non-eliminated players)
+      if (action.action_type === 'round_end_reveal' &&
+          action.player_id === playerId &&
+          action.details?.['final_card']) {
+        discards.push(action.details['final_card']);
+      }
     });
 
     // Reverse to show most recent cards first

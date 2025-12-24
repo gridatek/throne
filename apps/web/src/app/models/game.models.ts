@@ -98,7 +98,8 @@ export type ActionType =
   | 'force_discard'
   | 'view_hand'
   | 'swap_hands'
-  | 'guess_card';
+  | 'guess_card'
+  | 'round_end_reveal';
 
 export interface GameAction {
   id: string;

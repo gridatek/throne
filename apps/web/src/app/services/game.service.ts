@@ -1052,6 +1052,32 @@ export class GameService {
         details: actionDetails
       });
 
+    // Store all players' final cards for display
+    const { data: allHands } = await supabaseClient
+      .from('player_hands')
+      .select('player_id, cards')
+      .eq('game_id', gameId)
+      .eq('round_number', roundNumber);
+
+    if (allHands) {
+      for (const hand of allHands) {
+        if (hand.cards && hand.cards.length > 0) {
+          await supabaseClient
+            .from('game_actions')
+            .insert({
+              game_id: gameId,
+              round_number: roundNumber,
+              turn_number: (gameState?.turn_number || 0) + 1,
+              player_id: hand.player_id,
+              action_type: 'round_end_reveal',
+              details: {
+                final_card: hand.cards[0]
+              }
+            });
+        }
+      }
+    }
+
     // Check if game is over
     const game = this.currentGame();
     if (!game) return;
