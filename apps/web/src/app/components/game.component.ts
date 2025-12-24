@@ -866,6 +866,12 @@ export class GameComponent implements OnInit, OnDestroy {
           action.details?.['discarded_card']) {
         discards.push(action.details['discarded_card']);
       }
+
+      // Final card when player was eliminated
+      if (action.details?.['eliminated_player_id'] === playerId &&
+          action.details?.['eliminated_card']) {
+        discards.push(action.details['eliminated_card']);
+      }
     });
 
     return discards;

@@ -30,6 +30,7 @@ export class GameService {
   private lastPrinceDiscard: CardType | null = null;
   private targetWasProtected: boolean = false;
   private lastBaronResult: { myCard: CardType; theirCard: CardType; winner: string | null } | null = null;
+  private eliminatedCard: { playerId: string; card: CardType } | null = null;
 
   constructor(private supabase: SupabaseService) {}
 
@@ -444,6 +445,12 @@ export class GameService {
 
     actionDetails.message = message;
 
+    // Add eliminated card if someone was eliminated
+    if (this.eliminatedCard) {
+      actionDetails.eliminated_card = this.eliminatedCard.card;
+      actionDetails.eliminated_player_id = this.eliminatedCard.playerId;
+    }
+
     // Log action
     await supabaseClient
       .from('game_actions')
@@ -461,6 +468,7 @@ export class GameService {
     // Clear temp data after logging
     this.lastPriestReveal = null;
     this.lastBaronResult = null;
+    this.eliminatedCard = null;
 
     // Reload game state to get latest data (might have changed due to card effects)
     const { data: updatedState } = await supabaseClient
@@ -536,7 +544,8 @@ export class GameService {
         break;
       case 'Princess':
         // Playing Princess eliminates you immediately
-        await this.eliminatePlayer(playerId, state.game_id);
+        // Note: Princess is already the card being played, so no need to store eliminated card
+        await this.eliminatePlayer(playerId, state.game_id, state.round_number);
         break;
       case 'Countess':
         // Countess has no special effect when played
@@ -593,7 +602,10 @@ export class GameService {
 
     if (targetHand && targetHand.cards.includes(guessCard)) {
       // Correct guess - eliminate target
-      await this.eliminatePlayer(targetId, state.game_id);
+      const finalCard = await this.eliminatePlayer(targetId, state.game_id, state.round_number);
+      if (finalCard) {
+        this.eliminatedCard = { playerId: targetId, card: finalCard };
+      }
     }
   }
 
@@ -666,10 +678,16 @@ export class GameService {
     let winner: string | null = null;
     if (myValue < theirValue) {
       winner = targetId;
-      await this.eliminatePlayer(playerId, state.game_id);
+      const finalCard = await this.eliminatePlayer(playerId, state.game_id, state.round_number);
+      if (finalCard) {
+        this.eliminatedCard = { playerId, card: finalCard };
+      }
     } else if (theirValue < myValue) {
       winner = playerId;
-      await this.eliminatePlayer(targetId, state.game_id);
+      const finalCard = await this.eliminatePlayer(targetId, state.game_id, state.round_number);
+      if (finalCard) {
+        this.eliminatedCard = { playerId: targetId, card: finalCard };
+      }
     }
     // If equal, no one is eliminated (winner stays null)
 
@@ -728,7 +746,8 @@ export class GameService {
 
     // If Princess was discarded, eliminate the player
     if (discardedCard === 'Princess') {
-      await this.eliminatePlayer(targetId, state.game_id);
+      // Note: Princess is already stored in lastPrinceDiscard, no need to store eliminated card
+      await this.eliminatePlayer(targetId, state.game_id, state.round_number);
       // Also clear their hand
       await supabaseClient
         .from('player_hands')
@@ -827,14 +846,32 @@ export class GameService {
       .eq('id', theirHand.id);
   }
 
-  private async eliminatePlayer(playerId: string, gameId: string): Promise<void> {
+  private async eliminatePlayer(playerId: string, gameId: string, roundNumber?: number): Promise<CardType | null> {
     const supabaseClient = this.supabase.getClient();
+
+    // Get the player's final card before elimination
+    let finalCard: CardType | null = null;
+    if (roundNumber !== undefined) {
+      const { data: hand } = await supabaseClient
+        .from('player_hands')
+        .select('cards')
+        .eq('game_id', gameId)
+        .eq('round_number', roundNumber)
+        .eq('player_id', playerId)
+        .single();
+
+      if (hand && hand.cards && hand.cards.length > 0) {
+        finalCard = hand.cards[0];
+      }
+    }
 
     await supabaseClient
       .from('game_players')
       .update({ is_eliminated: true })
       .eq('game_id', gameId)
       .eq('player_id', playerId);
+
+    return finalCard;
   }
 
   private async nextTurn(state: GameState): Promise<void> {
