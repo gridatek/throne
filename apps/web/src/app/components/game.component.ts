@@ -917,6 +917,7 @@ export class GameComponent implements OnInit, OnDestroy {
       if (action.card_played === 'Prince' &&
           action.target_player_id === playerId &&
           action.player_id !== playerId &&
+          !action.details?.['target_protected'] &&
           action.details?.['discarded_card']) {
         discards.push(action.details['discarded_card']);
       }

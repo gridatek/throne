@@ -327,6 +327,8 @@ export class GameService {
     // Add to discard pile (using updated state to preserve cards added by effects)
     // For Prince, add Prince first, then the card it forced to discard
     let newDiscard = [...stateAfterEffect.discard_pile, request.card];
+    // Save Prince discard before clearing (we need it later for action logging)
+    const princeDiscardedCard = this.lastPrinceDiscard;
     if (this.lastPrinceDiscard) {
       newDiscard.push(this.lastPrinceDiscard);
       this.lastPrinceDiscard = null;
@@ -412,11 +414,11 @@ export class GameService {
         } else {
           message = `${playerName} played Prince on ${targetName}. ${targetName} discarded and drew a new card.`;
         }
-        if (this.lastPrinceDiscard) {
+        if (princeDiscardedCard) {
           // Store the discarded card
-          actionDetails.discarded_card = this.lastPrinceDiscard;
+          actionDetails.discarded_card = princeDiscardedCard;
           // Only reveal if it's Princess (since they get eliminated - public knowledge)
-          if (this.lastPrinceDiscard === 'Princess') {
+          if (princeDiscardedCard === 'Princess') {
             message += ` ${targetName} discarded the Princess and is eliminated!`;
           }
         }
