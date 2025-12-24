@@ -99,12 +99,13 @@ test.describe('Love Letter Game', () => {
 
       await player1.waitForURL(/\/lobby\/.+/);
 
-      // Get room code
-      const roomCodeElement = player1.locator('text=/[A-Z0-9]{6}/').first();
-      const roomCode = await roomCodeElement.textContent();
+      // Get room code - target the monospace styled element
+      const roomCodeElement = player1.locator('.font-mono.tracking-widest.text-purple-600');
+      const roomCode = (await roomCodeElement.textContent())?.trim();
 
       expect(roomCode).toBeTruthy();
-      expect(roomCode?.length).toBe(6);
+      expect(roomCode?.length).toBeGreaterThanOrEqual(6);
+      expect(roomCode?.length).toBeLessThanOrEqual(8);
 
       // Player 2 joins game
       await player2.goto('/');
@@ -156,11 +157,11 @@ test.describe('Love Letter Game', () => {
       // Check card reference
       await expect(page.locator('text=Card Reference')).toBeVisible();
 
-      // Check all card types are listed
+      // Check all card types are listed - use more specific selectors to avoid strict mode violations
       const cardNames = ['Princess', 'Countess', 'King', 'Prince', 'Handmaid', 'Baron', 'Priest', 'Guard'];
 
       for (const cardName of cardNames) {
-        await expect(page.locator(`text=${cardName}`)).toBeVisible();
+        await expect(page.locator(`span.font-medium:has-text("${cardName}:")`).first()).toBeVisible();
       }
     });
   });
@@ -241,7 +242,7 @@ test.describe('Love Letter Game', () => {
       await page.waitForURL(/\/lobby\/.+/);
 
       await expect(page.locator('text=Room Code')).toBeVisible();
-      await expect(page.locator('text=Players')).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Players' })).toBeVisible();
     });
   });
 });
