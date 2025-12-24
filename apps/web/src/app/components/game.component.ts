@@ -205,73 +205,91 @@ import { CardType, GamePlayer } from '../models/game.models';
                 }
               </div>
 
-              @if (selectedCard()) {
-                <div class="mt-6 space-y-4">
-                  <!-- Target Selection -->
-                  @if (needsTarget()) {
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Select Target Player
-                      </label>
-                      <div class="grid grid-cols-2 gap-2">
-                        @for (player of getValidTargets(); track player.id) {
-                          <button
-                            (click)="targetPlayer.set(player.player_id)"
-                            [class.ring-2]="targetPlayer() === player.player_id"
-                            [class.ring-purple-500]="targetPlayer() === player.player_id"
-                            class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium"
-                          >
-                            {{ player.player_name }}
-                          </button>
+              <!-- Always Visible Status Message -->
+              <div class="mt-4 px-4 py-3 rounded-lg text-center font-medium"
+                [class.bg-red-50]="isEliminated()"
+                [class.border-red-200]="isEliminated()"
+                [class.text-red-800]="isEliminated()"
+                [class.bg-green-50]="isMyTurn() && !isEliminated()"
+                [class.border-green-200]="isMyTurn() && !isEliminated()"
+                [class.text-green-800]="isMyTurn() && !isEliminated()"
+                [class.bg-blue-50]="!isMyTurn() && !isEliminated()"
+                [class.border-blue-200]="!isMyTurn() && !isEliminated()"
+                [class.text-blue-800]="!isMyTurn() && !isEliminated()"
+                class="border">
+                @if (isEliminated()) {
+                  <span>❌ You've been eliminated - wait for next round</span>
+                } @else if (isMyTurn() && !hasDrawn()) {
+                  <span>🎯 Your turn - Draw a card to begin</span>
+                } @else if (isMyTurn() && hasDrawn() && !selectedCard()) {
+                  <span>🎯 Your turn - Select and play a card</span>
+                } @else if (isMyTurn() && selectedCard()) {
+                  <span>🎯 Your turn - Complete your card action</span>
+                } @else {
+                  <span>⏳ Waiting for {{ getCurrentTurnPlayerName() }}...</span>
+                }
+              </div>
+
+              <!-- Always Visible Controls -->
+              <div class="mt-6 space-y-4">
+                <!-- Target Selection -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Select Target Player
+                  </label>
+                  <div class="grid grid-cols-2 gap-2">
+                    @for (player of getAllPlayersWithMeFirst(); track player.id) {
+                      <button
+                        (click)="targetPlayer.set(player.player_id)"
+                        [disabled]="player.is_eliminated"
+                        [class.ring-2]="targetPlayer() === player.player_id"
+                        [class.ring-purple-500]="targetPlayer() === player.player_id"
+                        [class.opacity-50]="player.is_eliminated"
+                        [class.cursor-not-allowed]="player.is_eliminated"
+                        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-all"
+                      >
+                        {{ player.player_name }}@if (isMe(player)) {
+                          <span class="text-xs"> (You)</span>
                         }
-                      </div>
-                    </div>
-                  }
-
-                  <!-- Guard Card Guess -->
-                  @if (selectedCard() === 'Guard' && targetPlayer()) {
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Guess Their Card
-                      </label>
-                      <div class="grid grid-cols-3 gap-2">
-                        @for (cardType of getGuessableCards(); track cardType) {
-                          <button
-                            (click)="guessCard.set(cardType)"
-                            [class.ring-2]="guessCard() === cardType"
-                            [class.ring-purple-500]="guessCard() === cardType"
-                            class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-sm"
-                          >
-                            {{ cardType }}
-                          </button>
-                        }
-                      </div>
-                    </div>
-                  }
-
-                  <!-- Play Button -->
-                  <div class="flex space-x-2">
-                    <button
-                      (click)="playSelectedCard()"
-                      [disabled]="!canPlayCard() || playing()"
-                      class="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-                    >
-                      @if (playing()) {
-                        <span>Playing...</span>
-                      } @else {
-                        <span>Play Card</span>
-                      }
-                    </button>
-
-                    <button
-                      (click)="cancelSelection()"
-                      class="px-6 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 rounded-lg transition-colors"
-                    >
-                      Cancel
-                    </button>
+                      </button>
+                    }
                   </div>
                 </div>
-              }
+
+                <!-- Guard Card Guess -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Guess Their Card
+                  </label>
+                  <div class="grid grid-cols-3 gap-2">
+                    @for (cardType of getGuessableCards(); track cardType) {
+                      <button
+                        (click)="guessCard.set(cardType)"
+                        [class.ring-2]="guessCard() === cardType"
+                        [class.ring-purple-500]="guessCard() === cardType"
+                        class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-sm"
+                      >
+                        {{ cardType }}
+                      </button>
+                    }
+                  </div>
+                </div>
+
+                <!-- Play Button -->
+                <div>
+                  <button
+                    (click)="playSelectedCard()"
+                    [disabled]="!canPlayCard() || playing()"
+                    class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                  >
+                    @if (playing()) {
+                      <span>Playing...</span>
+                    } @else {
+                      <span>Play</span>
+                    }
+                  </button>
+                </div>
+              </div>
             } @else {
               <div class="text-center py-12 text-gray-500">
                 @if (isEliminated()) {
@@ -282,31 +300,6 @@ import { CardType, GamePlayer } from '../models/game.models';
                 }
               </div>
             }
-
-            <!-- Always Visible Status Message -->
-            <div class="mt-4 px-4 py-3 rounded-lg text-center font-medium"
-              [class.bg-red-50]="isEliminated()"
-              [class.border-red-200]="isEliminated()"
-              [class.text-red-800]="isEliminated()"
-              [class.bg-green-50]="isMyTurn() && !isEliminated()"
-              [class.border-green-200]="isMyTurn() && !isEliminated()"
-              [class.text-green-800]="isMyTurn() && !isEliminated()"
-              [class.bg-blue-50]="!isMyTurn() && !isEliminated()"
-              [class.border-blue-200]="!isMyTurn() && !isEliminated()"
-              [class.text-blue-800]="!isMyTurn() && !isEliminated()"
-              class="border">
-              @if (isEliminated()) {
-                <span>❌ You've been eliminated - wait for next round</span>
-              } @else if (isMyTurn() && !hasDrawn()) {
-                <span>🎯 Your turn - Draw a card to begin</span>
-              } @else if (isMyTurn() && hasDrawn() && !selectedCard()) {
-                <span>🎯 Your turn - Select and play a card</span>
-              } @else if (isMyTurn() && selectedCard()) {
-                <span>🎯 Your turn - Complete your card action</span>
-              } @else {
-                <span>⏳ Waiting for {{ getCurrentTurnPlayerName() }}...</span>
-              }
-            </div>
           </div>
         </main>
 
@@ -548,6 +541,18 @@ export class GameComponent implements OnInit, OnDestroy {
     return me?.player_name || 'Guest';
   }
 
+  getAllPlayersWithMeFirst(): GamePlayer[] {
+    const myId = this.supabaseService.getCurrentPlayerId();
+    const allPlayers = this.players();
+
+    // Sort so current player is first
+    return [...allPlayers].sort((a, b) => {
+      if (a.player_id === myId) return -1;
+      if (b.player_id === myId) return 1;
+      return 0;
+    });
+  }
+
   isEliminated(): boolean {
     const myId = this.supabaseService.getCurrentPlayerId();
     const me = this.players().find(p => p.player_id === myId);
@@ -643,7 +648,7 @@ export class GameComponent implements OnInit, OnDestroy {
   }
 
   getGuessableCards(): CardType[] {
-    return ['Priest', 'Baron', 'Handmaid', 'Prince', 'King', 'Countess', 'Princess'];
+    return ['Guard', 'Priest', 'Baron', 'Handmaid', 'Prince', 'King', 'Countess', 'Princess'];
   }
 
   canPlayCard(): boolean {
@@ -825,9 +830,18 @@ export class GameComponent implements OnInit, OnDestroy {
   }
 
   getLastDiscardedCard(): CardType | null {
-    const discard = this.gameState()?.discard_pile;
-    if (!discard || discard.length === 0) return null;
-    return discard[discard.length - 1];
+    // Get the most recent card played by any player
+    const actions = this.recentActions();
+
+    // Find the most recent play_card action
+    for (let i = actions.length - 1; i >= 0; i--) {
+      const action = actions[i];
+      if (action.card_played) {
+        return action.card_played;
+      }
+    }
+
+    return null;
   }
 
   getCardValue(card: CardType): number {
