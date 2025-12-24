@@ -901,7 +901,8 @@ export class GameComponent implements OnInit, OnDestroy {
       }
     });
 
-    return discards;
+    // Reverse to show most recent cards first
+    return discards.reverse();
   }
 
   getLastDiscardedCard(): CardType | null {
