@@ -749,12 +749,8 @@ export class GameService {
     // If Princess was discarded, eliminate the player
     if (discardedCard === 'Princess') {
       // Note: Princess is already stored in lastPrinceDiscard, no need to store eliminated card
+      // eliminatePlayer now clears the hand automatically
       await this.eliminatePlayer(targetId, state.game_id, state.round_number);
-      // Also clear their hand
-      await supabaseClient
-        .from('player_hands')
-        .update({ cards: [] })
-        .eq('id', targetHand.id);
       return;
     }
 
@@ -865,6 +861,14 @@ export class GameService {
       if (hand && hand.cards && hand.cards.length > 0) {
         finalCard = hand.cards[0];
       }
+
+      // Clear the player's hand after getting their final card
+      await supabaseClient
+        .from('player_hands')
+        .update({ cards: [] })
+        .eq('game_id', gameId)
+        .eq('round_number', roundNumber)
+        .eq('player_id', playerId);
     }
 
     await supabaseClient
