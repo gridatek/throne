@@ -871,9 +871,15 @@ export class GameComponent implements OnInit, OnDestroy {
 
   getPlayerDiscards(playerId: string): CardType[] {
     const actions = this.recentActions();
+    const currentRound = this.gameState()?.round_number;
     const discards: CardType[] = [];
 
     actions.forEach(action => {
+      // Only include actions from the current round
+      if (action.round_number !== currentRound) {
+        return;
+      }
+
       // Cards this player played
       if (action.player_id === playerId && action.card_played) {
         discards.push(action.card_played);
@@ -905,13 +911,14 @@ export class GameComponent implements OnInit, OnDestroy {
   }
 
   getLastDiscardedCard(): CardType | null {
-    // Get the most recent card played by any player
+    // Get the most recent card played by any player in the current round
     const actions = this.recentActions();
+    const currentRound = this.gameState()?.round_number;
 
-    // Find the most recent play_card action
+    // Find the most recent play_card action from current round
     for (let i = actions.length - 1; i >= 0; i--) {
       const action = actions[i];
-      if (action.card_played) {
+      if (action.round_number === currentRound && action.card_played) {
         return action.card_played;
       }
     }
@@ -936,10 +943,16 @@ export class GameComponent implements OnInit, OnDestroy {
   getSeenCard(playerId: string): CardType | null {
     const myId = this.supabaseService.getCurrentPlayerId();
     const actions = this.recentActions();
+    const currentRound = this.gameState()?.round_number;
 
-    // Find the most recent Priest action where I played it on this player
+    // Find the most recent Priest action where I played it on this player in current round
     for (let i = actions.length - 1; i >= 0; i--) {
       const action = actions[i];
+
+      // Only consider actions from current round
+      if (action.round_number !== currentRound) {
+        continue;
+      }
 
       // Check if I played Priest on this player
       if (action.card_played === 'Priest' &&
@@ -949,7 +962,11 @@ export class GameComponent implements OnInit, OnDestroy {
 
         // Check if I've taken another turn since seeing their card
         // Look for any action after this one where I played a card
-        const myNextAction = actions.slice(i + 1).find(a => a.player_id === myId && a.card_played);
+        const myNextAction = actions.slice(i + 1).find(a =>
+          a.round_number === currentRound &&
+          a.player_id === myId &&
+          a.card_played
+        );
 
         // If I haven't taken another turn yet, show the card I saw
         if (!myNextAction) {
