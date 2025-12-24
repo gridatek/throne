@@ -20,13 +20,20 @@ import { CardType, GamePlayer } from '../models/game.models';
             <h1 class="text-3xl font-bold">💌 Love Letter</h1>
           </div>
           <div class="flex items-center gap-2">
-            <div class="text-right">
-              <p class="text-xs opacity-90">Playing as</p>
-              <p class="text-lg font-bold">{{ getMyPlayerName() }}</p>
-            </div>
-            <div class="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-xl font-bold">
-              {{ getMyPlayerName().charAt(0).toUpperCase() }}
-            </div>
+            @if (isSpectator()) {
+              <div class="text-right">
+                <p class="text-xs opacity-90">Spectator Mode</p>
+                <p class="text-lg font-bold">👁️ Watching</p>
+              </div>
+            } @else {
+              <div class="text-right">
+                <p class="text-xs opacity-90">Playing as</p>
+                <p class="text-lg font-bold">{{ getMyPlayerName() }}</p>
+              </div>
+              <div class="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-xl font-bold">
+                {{ getMyPlayerName().charAt(0).toUpperCase() }}
+              </div>
+            }
           </div>
         </div>
       </header>
@@ -138,10 +145,10 @@ import { CardType, GamePlayer } from '../models/game.models';
                   <div class="relative">
                     <button
                       (click)="drawCard()"
-                      [disabled]="!canDraw()"
+                      [disabled]="!canDraw() || isSpectator()"
                       class="relative group transition-transform hover:scale-105 disabled:hover:scale-100"
-                      [class.cursor-pointer]="canDraw()"
-                      [class.cursor-not-allowed]="!canDraw()"
+                      [class.cursor-pointer]="canDraw() && !isSpectator()"
+                      [class.cursor-not-allowed]="!canDraw() || isSpectator()"
                     >
                       <!-- Stacked deck effect -->
                       <div class="absolute top-1 left-1 w-32 h-44 bg-purple-400 rounded-lg opacity-60"></div>
@@ -198,7 +205,7 @@ import { CardType, GamePlayer } from '../models/game.models';
                 @for (card of myHand()!.cards; track $index) {
                   <app-card
                     [card]="card"
-                    [selectable]="isMyTurn() && hasDrawn() && !selectedCard() && canSelectCard(card)"
+                    [selectable]="!isSpectator() && isMyTurn() && hasDrawn() && !selectedCard() && canSelectCard(card)"
                     [selected]="selectedCard() === card"
                     (cardClick)="selectCard(card)"
                   />
@@ -207,17 +214,22 @@ import { CardType, GamePlayer } from '../models/game.models';
 
               <!-- Always Visible Status Message -->
               <div class="mt-4 px-4 py-3 rounded-lg text-center font-medium"
-                [class.bg-red-50]="isEliminated()"
-                [class.border-red-200]="isEliminated()"
-                [class.text-red-800]="isEliminated()"
-                [class.bg-green-50]="isMyTurn() && !isEliminated()"
-                [class.border-green-200]="isMyTurn() && !isEliminated()"
-                [class.text-green-800]="isMyTurn() && !isEliminated()"
-                [class.bg-blue-50]="!isMyTurn() && !isEliminated()"
-                [class.border-blue-200]="!isMyTurn() && !isEliminated()"
-                [class.text-blue-800]="!isMyTurn() && !isEliminated()"
+                [class.bg-purple-50]="isSpectator()"
+                [class.border-purple-200]="isSpectator()"
+                [class.text-purple-800]="isSpectator()"
+                [class.bg-red-50]="!isSpectator() && isEliminated()"
+                [class.border-red-200]="!isSpectator() && isEliminated()"
+                [class.text-red-800]="!isSpectator() && isEliminated()"
+                [class.bg-green-50]="!isSpectator() && isMyTurn() && !isEliminated()"
+                [class.border-green-200]="!isSpectator() && isMyTurn() && !isEliminated()"
+                [class.text-green-800]="!isSpectator() && isMyTurn() && !isEliminated()"
+                [class.bg-blue-50]="!isSpectator() && !isMyTurn() && !isEliminated()"
+                [class.border-blue-200]="!isSpectator() && !isMyTurn() && !isEliminated()"
+                [class.text-blue-800]="!isSpectator() && !isMyTurn() && !isEliminated()"
                 class="border">
-                @if (isEliminated()) {
+                @if (isSpectator()) {
+                  <span>👁️ Spectator Mode - Watching {{ getCurrentTurnPlayerName() }}'s turn</span>
+                } @else if (isEliminated()) {
                   <span>❌ You've been eliminated - wait for next round</span>
                 } @else if (isMyTurn() && !hasDrawn()) {
                   <span>🎯 Your turn - Draw a card to begin</span>
@@ -241,11 +253,11 @@ import { CardType, GamePlayer } from '../models/game.models';
                     @for (player of getAllPlayersWithMeFirst(); track player.id) {
                       <button
                         (click)="targetPlayer.set(player.player_id)"
-                        [disabled]="player.is_eliminated"
+                        [disabled]="player.is_eliminated || isSpectator()"
                         [class.ring-2]="targetPlayer() === player.player_id"
                         [class.ring-purple-500]="targetPlayer() === player.player_id"
-                        [class.opacity-50]="player.is_eliminated"
-                        [class.cursor-not-allowed]="player.is_eliminated"
+                        [class.opacity-50]="player.is_eliminated || isSpectator()"
+                        [class.cursor-not-allowed]="player.is_eliminated || isSpectator()"
                         class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-all"
                       >
                         {{ player.player_name }}@if (isMe(player)) {
@@ -265,8 +277,11 @@ import { CardType, GamePlayer } from '../models/game.models';
                     @for (cardType of getGuessableCards(); track cardType) {
                       <button
                         (click)="guessCard.set(cardType)"
+                        [disabled]="isSpectator()"
                         [class.ring-2]="guessCard() === cardType"
                         [class.ring-purple-500]="guessCard() === cardType"
+                        [class.opacity-50]="isSpectator()"
+                        [class.cursor-not-allowed]="isSpectator()"
                         class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-sm"
                       >
                         {{ cardType }}
@@ -279,10 +294,12 @@ import { CardType, GamePlayer } from '../models/game.models';
                 <div>
                   <button
                     (click)="playSelectedCard()"
-                    [disabled]="!canPlayCard() || playing()"
+                    [disabled]="!canPlayCard() || playing() || isSpectator()"
                     class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors"
                   >
-                    @if (playing()) {
+                    @if (isSpectator()) {
+                      <span>Spectator Mode</span>
+                    } @else if (playing()) {
                       <span>Playing...</span>
                     } @else {
                       <span>Play</span>
@@ -551,6 +568,12 @@ export class GameComponent implements OnInit, OnDestroy {
       if (b.player_id === myId) return 1;
       return 0;
     });
+  }
+
+  isSpectator(): boolean {
+    const myId = this.supabaseService.getCurrentPlayerId();
+    const me = this.players().find(p => p.player_id === myId);
+    return !me; // Spectator if not in players list
   }
 
   isEliminated(): boolean {
