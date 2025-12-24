@@ -168,17 +168,52 @@ import { CardType, GamePlayer } from '../models/game.models';
 
         <!-- MIDDLE SECTION: Game Desk -->
         <main class="bg-white rounded-xl shadow-lg overflow-hidden">
-          <!-- Game Status Bar -->
-          <div class="bg-gradient-to-r from-purple-50 to-pink-50 p-4 border-b">
-            <div class="flex justify-center items-center">
-              <div class="text-center">
-                <p class="text-lg font-bold text-purple-900">Round {{ gameState()?.round_number || 1 }}</p>
-                <p class="text-xs text-gray-600">Turn {{ gameState()?.turn_number || 1 }}</p>
+          @if (waitingForNextRound) {
+            <!-- Round Over Screen -->
+            <div class="p-8">
+              <div class="bg-gradient-to-r from-yellow-100 to-orange-100 border-4 border-yellow-400 rounded-2xl shadow-2xl p-8">
+                <div class="text-center">
+                  <h2 class="text-4xl font-bold text-purple-900 mb-6">🏆 Round Over!</h2>
+                  @if (roundWinner) {
+                    <p class="text-2xl mb-3 font-bold text-gray-800">
+                      {{ roundWinner.player_name }} won this round!
+                    </p>
+                    <p class="text-xl mb-8 text-gray-700">
+                      Tokens: {{ roundWinner.tokens }} / {{ game()?.winning_tokens }}
+                    </p>
+                  }
+                  @if (isHost) {
+                    <button
+                      (click)="startNextRound()"
+                      [disabled]="startingNextRound()"
+                      class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-lg transition-colors shadow-lg text-lg"
+                    >
+                      @if (startingNextRound()) {
+                        <span>Starting Round {{ game()?.current_round }}...</span>
+                      } @else {
+                        <span>Start Round {{ game()?.current_round }}</span>
+                      }
+                    </button>
+                  } @else {
+                    <div class="bg-blue-50 border-2 border-blue-400 text-blue-800 px-6 py-4 rounded-lg shadow-md">
+                      <p class="font-semibold text-lg">Waiting for host to start Round {{ game()?.current_round }}...</p>
+                    </div>
+                  }
+                </div>
               </div>
             </div>
-          </div>
+          } @else {
+            <!-- Game Status Bar -->
+            <div class="bg-gradient-to-r from-purple-50 to-pink-50 p-4 border-b">
+              <div class="flex justify-center items-center">
+                <div class="text-center">
+                  <p class="text-lg font-bold text-purple-900">Round {{ gameState()?.round_number || 1 }}</p>
+                  <p class="text-xs text-gray-600">Turn {{ gameState()?.turn_number || 1 }}</p>
+                </div>
+              </div>
+            </div>
 
-          <!-- Your Hand Area -->
+            <!-- Your Hand Area -->
           <div class="p-6">
             <!-- Deck and Discard Pile -->
             <div class="mb-8">
@@ -367,6 +402,7 @@ import { CardType, GamePlayer } from '../models/game.models';
               </div>
             }
           </div>
+          }
         </main>
 
         <!-- RIGHT SECTION: Game Logs -->
@@ -386,50 +422,6 @@ import { CardType, GamePlayer } from '../models/game.models';
           </div>
         </aside>
       </div>
-
-      <!-- Error Messages and Overlays -->
-      @if (error()) {
-        <div class="col-span-1 md:col-span-2 lg:col-span-3">
-          <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            {{ error() }}
-          </div>
-        </div>
-      }
-
-      @if (waitingForNextRound) {
-        <div class="col-span-1 md:col-span-2 lg:col-span-3">
-          <div class="bg-gradient-to-r from-yellow-100 to-orange-100 border-4 border-yellow-400 rounded-2xl shadow-2xl p-6">
-            <div class="text-center">
-              <h2 class="text-3xl font-bold text-purple-900 mb-4">🏆 Round Over!</h2>
-              @if (roundWinner) {
-                <p class="text-xl mb-2">
-                  {{ roundWinner.player_name }} won this round!
-                </p>
-                <p class="text-lg mb-6 text-gray-600">
-                  Tokens: {{ roundWinner.tokens }} / {{ game()?.winning_tokens }}
-                </p>
-              }
-              @if (isHost) {
-                <button
-                  (click)="startNextRound()"
-                  [disabled]="startingNextRound()"
-                  class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-lg transition-colors shadow-lg"
-                >
-                  @if (startingNextRound()) {
-                    <span>Starting Round {{ game()?.current_round }}...</span>
-                  } @else {
-                    <span>Start Round {{ game()?.current_round }}</span>
-                  }
-                </button>
-              } @else {
-                <div class="bg-blue-50 border-2 border-blue-400 text-blue-800 px-4 py-3 rounded-lg shadow-md">
-                  <p class="font-semibold">Waiting for host to start Round {{ game()?.current_round }}...</p>
-                </div>
-              }
-            </div>
-          </div>
-        </div>
-      }
 
       @if (gameOver) {
           <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
