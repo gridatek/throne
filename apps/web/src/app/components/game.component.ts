@@ -145,22 +145,6 @@ import { CardType, GamePlayer } from '../models/game.models';
                     <p class="text-xs text-gray-500 italic">None</p>
                   }
                 </div>
-
-                <!-- Revealed Card (from Priest) -->
-                @if (!player.is_eliminated) {
-                  <div class="mt-2 pt-2 border-t border-gray-300">
-                    <p class="text-xs font-semibold text-gray-700 mb-1.5">Revealed Card:</p>
-                    @if (getSeenCard(player.player_id); as seenCard) {
-                      <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold border border-blue-300">
-                        {{ seenCard }}
-                      </span>
-                    } @else {
-                      <span class="px-2 py-1 bg-gray-100 text-gray-500 rounded text-xs font-semibold border border-gray-300">
-                        ?
-                      </span>
-                    }
-                  </div>
-                }
               </div>
             }
           </div>
