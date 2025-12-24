@@ -114,30 +114,10 @@ import { CardType, GamePlayer } from '../models/game.models';
         <main class="bg-white rounded-xl shadow-lg overflow-hidden">
           <!-- Game Status Bar -->
           <div class="bg-gradient-to-r from-purple-50 to-pink-50 p-4 border-b">
-            <div class="flex justify-between items-center">
-              <div>
+            <div class="flex justify-center items-center">
+              <div class="text-center">
                 <p class="text-lg font-bold text-purple-900">Round {{ gameState()?.round_number || 1 }}</p>
                 <p class="text-xs text-gray-600">Turn {{ gameState()?.turn_number || 1 }}</p>
-              </div>
-
-              <!-- Turn Indicator -->
-              <div class="text-center">
-                @if (isMyTurn()) {
-                  <div class="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg animate-pulse">
-                    <p class="text-xs font-medium">It's Your Turn!</p>
-                    <p class="text-2xl font-bold">🎯</p>
-                  </div>
-                } @else {
-                  <div class="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg">
-                    <p class="text-xs font-medium">Current Turn:</p>
-                    <p class="text-lg font-bold">{{ getCurrentTurnPlayerName() }}</p>
-                  </div>
-                }
-              </div>
-
-              <div class="text-right">
-                <p class="text-sm text-gray-600">Deck</p>
-                <p class="text-2xl font-bold text-purple-600">{{ gameState()?.deck?.length || 0 }} 🃏</p>
               </div>
             </div>
           </div>
