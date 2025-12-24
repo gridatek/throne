@@ -963,14 +963,53 @@ export class GameService {
 
     // Find highest card value
     let maxValue = 0;
-    let winnerId = playerIds[0];
+    const playersWithMaxValue: string[] = [];
 
     for (const hand of hands) {
       if (!hand.cards[0]) continue;
       const value = CARD_VALUES[hand.cards[0] as CardType];
       if (value > maxValue) {
         maxValue = value;
-        winnerId = hand.player_id;
+        playersWithMaxValue.length = 0;
+        playersWithMaxValue.push(hand.player_id);
+      } else if (value === maxValue) {
+        playersWithMaxValue.push(hand.player_id);
+      }
+    }
+
+    // If only one player has the highest card, they win
+    if (playersWithMaxValue.length === 1) {
+      return playersWithMaxValue[0];
+    }
+
+    // Tiebreaker: player who discarded cards with highest total value wins
+    const { data: actions } = await supabaseClient
+      .from('game_actions')
+      .select('player_id, card_played')
+      .eq('game_id', gameId)
+      .eq('round_number', roundNumber)
+      .eq('action_type', 'play_card')
+      .in('player_id', playersWithMaxValue);
+
+    const discardSums: Record<string, number> = {};
+    playersWithMaxValue.forEach(id => discardSums[id] = 0);
+
+    if (actions) {
+      for (const action of actions) {
+        if (action.card_played) {
+          discardSums[action.player_id] += CARD_VALUES[action.card_played as CardType];
+        }
+      }
+    }
+
+    // Find player with highest discard sum
+    let winnerId = playersWithMaxValue[0];
+    let maxSum = discardSums[winnerId];
+
+    for (const playerId of playersWithMaxValue) {
+      if (discardSums[playerId] > maxSum) {
+        maxSum = discardSums[playerId];
+        winnerId = playerId;
       }
     }
 
