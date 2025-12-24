@@ -25,7 +25,7 @@ export class ConfigService {
         throw new Error(`Failed to load config: ${response.statusText}`);
       }
       this.config = await response.json();
-      return this.config;
+      return this.config!;
     } catch (error) {
       console.error('Error loading config:', error);
       throw error;
