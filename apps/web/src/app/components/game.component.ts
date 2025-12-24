@@ -839,11 +839,19 @@ export class GameComponent implements OnInit, OnDestroy {
       // Cards this player played
       if (action.player_id === playerId && action.card_played) {
         discards.push(action.card_played);
+
+        // If they played Prince on themselves, also add the discarded card
+        if (action.card_played === 'Prince' &&
+            action.target_player_id === playerId &&
+            action.details?.['discarded_card']) {
+          discards.push(action.details['discarded_card']);
+        }
       }
 
-      // Cards forced to discard by Prince (target was this player)
+      // Cards forced to discard by Prince (when someone else played Prince on this player)
       if (action.card_played === 'Prince' &&
           action.target_player_id === playerId &&
+          action.player_id !== playerId &&
           action.details?.['discarded_card']) {
         discards.push(action.details['discarded_card']);
       }
