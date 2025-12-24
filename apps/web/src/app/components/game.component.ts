@@ -12,12 +12,30 @@ import { CardType, GamePlayer } from '../models/game.models';
   standalone: true,
   imports: [CommonModule, FormsModule, CardComponent],
   template: `
-    <div class="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-red-100 p-4">
+    <div class="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-red-100">
+      <!-- Global Sticky Header -->
+      <header class="sticky top-0 z-50 bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 text-white shadow-lg">
+        <div class="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <h1 class="text-3xl font-bold">💌 Love Letter</h1>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="text-right">
+              <p class="text-xs opacity-90">Playing as</p>
+              <p class="text-lg font-bold">{{ getMyPlayerName() }}</p>
+            </div>
+            <div class="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-xl font-bold">
+              {{ getMyPlayerName().charAt(0).toUpperCase() }}
+            </div>
+          </div>
+        </div>
+      </header>
+
       <!-- 3-Section Grid Container -->
-      <div class="grid grid-cols-1 md:grid-cols-[300px_1fr] lg:grid-cols-[280px_1fr_340px] gap-4 max-w-[1600px] mx-auto">
+      <div class="grid grid-cols-1 md:grid-cols-[300px_1fr] lg:grid-cols-[280px_1fr_340px] gap-4 max-w-[1600px] mx-auto p-4">
 
         <!-- LEFT SECTION: Players List -->
-        <aside class="bg-white rounded-xl shadow-lg p-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] overflow-y-auto">
+        <aside class="bg-white rounded-xl shadow-lg p-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] overflow-y-auto">
           <h2 class="text-xl font-bold text-gray-800 mb-4">Players</h2>
           <div class="space-y-3">
             @for (player of players(); track player.id) {
@@ -98,8 +116,8 @@ import { CardType, GamePlayer } from '../models/game.models';
           <div class="bg-gradient-to-r from-purple-50 to-pink-50 p-4 border-b">
             <div class="flex justify-between items-center">
               <div>
-                <h1 class="text-2xl font-bold text-purple-900">💌 Love Letter</h1>
-                <p class="text-sm text-gray-600">Round {{ gameState()?.round_number || 1 }}</p>
+                <p class="text-lg font-bold text-purple-900">Round {{ gameState()?.round_number || 1 }}</p>
+                <p class="text-xs text-gray-600">Turn {{ gameState()?.turn_number || 1 }}</p>
               </div>
 
               <!-- Turn Indicator -->
@@ -246,7 +264,7 @@ import { CardType, GamePlayer } from '../models/game.models';
         </main>
 
         <!-- RIGHT SECTION: Game Logs -->
-        <aside class="bg-white rounded-xl shadow-lg overflow-hidden lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] md:col-span-2 lg:col-span-1">
+        <aside class="bg-white rounded-xl shadow-lg overflow-hidden lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] md:col-span-2 lg:col-span-1">
           <div class="p-4 border-b bg-gray-50 sticky top-0">
             <h2 class="text-lg font-bold text-gray-800">Game Log</h2>
           </div>
@@ -475,6 +493,12 @@ export class GameComponent implements OnInit, OnDestroy {
   isMe(player: GamePlayer): boolean {
     const myId = this.supabaseService.getCurrentPlayerId();
     return player.player_id === myId;
+  }
+
+  getMyPlayerName(): string {
+    const myId = this.supabaseService.getCurrentPlayerId();
+    const me = this.players().find(p => p.player_id === myId);
+    return me?.player_name || 'Guest';
   }
 
   isEliminated(): boolean {
