@@ -1,7 +1,29 @@
-export const environment = {
-  production: false,
-  supabase: {
-    url: 'http://127.0.0.1:54321',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+// Environment configuration is now loaded from /assets/config.json
+// This file is kept for backwards compatibility but delegates to ConfigService
+// The actual config is loaded at runtime via APP_INITIALIZER in app.config.ts
+
+import { inject } from '@angular/core';
+import { ConfigService } from '../app/services/config.service';
+
+let configService: ConfigService | null = null;
+
+// Lazy getter that returns the config from ConfigService
+export const environment = new Proxy(
+  {},
+  {
+    get(_target, prop) {
+      if (!configService) {
+        // Attempt to get ConfigService on first access
+        try {
+          configService = inject(ConfigService);
+        } catch {
+          throw new Error(
+            'ConfigService not available. Ensure config is loaded via APP_INITIALIZER.'
+          );
+        }
+      }
+      const config = configService.getConfig();
+      return (config as any)[prop];
+    },
   }
-};
+) as { production: boolean; supabase: { url: string; anonKey: string } };
