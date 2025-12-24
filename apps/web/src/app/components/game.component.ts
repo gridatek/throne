@@ -144,25 +144,66 @@ import { CardType, GamePlayer } from '../models/game.models';
 
           <!-- Your Hand Area -->
           <div class="p-6">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">Your Hand</h2>
+            <!-- Deck and Discard Pile -->
+            <div class="flex items-center justify-center gap-8 mb-8">
+              <!-- Draw Deck (Face Down) -->
+              <div class="text-center">
+                <div class="relative">
+                  <button
+                    (click)="drawCard()"
+                    [disabled]="!canDraw()"
+                    class="relative group transition-transform hover:scale-105 disabled:hover:scale-100"
+                    [class.cursor-pointer]="canDraw()"
+                    [class.cursor-not-allowed]="!canDraw()"
+                  >
+                    <!-- Stacked deck effect -->
+                    <div class="absolute top-1 left-1 w-32 h-44 bg-purple-400 rounded-lg opacity-60"></div>
+                    <div class="absolute top-0.5 left-0.5 w-32 h-44 bg-purple-500 rounded-lg opacity-80"></div>
 
-            <!-- Draw Card Button -->
-            <div class="mb-6">
-              <button
-                (click)="drawCard()"
-                [disabled]="!canDraw()"
-                class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-lg transition-colors text-lg"
-              >
-                @if (drawing()) {
-                  <span>Drawing...</span>
-                } @else if (!isMyTurn()) {
-                  <span>🃏 Wait for your turn</span>
-                } @else if (hasDrawn()) {
-                  <span>✓ Card drawn - play a card</span>
-                } @else {
-                  <span>🃏 Draw Card</span>
-                }
-              </button>
+                    <!-- Main deck card -->
+                    <div class="relative w-32 h-44 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg shadow-xl border-4 border-white flex flex-col items-center justify-center">
+                      <div class="text-6xl mb-2">🃏</div>
+                      <div class="text-white font-bold text-sm">{{ gameState()?.deck?.length || 0 }}</div>
+                      @if (!canDraw()) {
+                        <div class="absolute inset-0 bg-gray-900/50 rounded-lg flex items-center justify-center">
+                          @if (hasDrawn()) {
+                            <span class="text-white text-xs font-bold px-2 py-1 bg-green-600 rounded">✓ Drawn</span>
+                          } @else if (!isMyTurn()) {
+                            <span class="text-white text-xs font-bold px-2 py-1 bg-gray-600 rounded">Wait</span>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </button>
+                </div>
+                <p class="text-xs text-gray-600 mt-2 font-semibold">Draw Deck</p>
+              </div>
+
+              <!-- Discard Pile (Face Up) -->
+              <div class="text-center">
+                <div class="relative w-32 h-44">
+                  @if (getLastDiscardedCard()) {
+                    <!-- Stacked discard effect -->
+                    <div class="absolute top-1 left-1 w-32 h-44 bg-gray-300 rounded-lg opacity-40"></div>
+                    <div class="absolute top-0.5 left-0.5 w-32 h-44 bg-gray-200 rounded-lg opacity-60"></div>
+
+                    <!-- Top card -->
+                    <div class="relative w-32 h-44 bg-white rounded-lg shadow-xl border-4 border-purple-300 flex flex-col items-center justify-center">
+                      <div class="text-3xl font-bold text-purple-600 mb-1">{{ getCardValue(getLastDiscardedCard()!) }}</div>
+                      <div class="text-sm font-bold text-gray-800 px-2 text-center">{{ getLastDiscardedCard() }}</div>
+                    </div>
+                  } @else {
+                    <!-- Empty discard pile -->
+                    <div class="w-32 h-44 border-4 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+                      <div class="text-gray-400 text-center">
+                        <div class="text-4xl mb-1">🗑️</div>
+                        <div class="text-xs font-semibold">Empty</div>
+                      </div>
+                    </div>
+                  }
+                </div>
+                <p class="text-xs text-gray-600 mt-2 font-semibold">Discard Pile</p>
+              </div>
             </div>
 
             @if (myHand()?.cards && myHand()!.cards.length > 0) {
@@ -775,5 +816,25 @@ export class GameComponent implements OnInit, OnDestroy {
     });
 
     return discards;
+  }
+
+  getLastDiscardedCard(): CardType | null {
+    const discard = this.gameState()?.discard_pile;
+    if (!discard || discard.length === 0) return null;
+    return discard[discard.length - 1];
+  }
+
+  getCardValue(card: CardType): number {
+    const values: Record<CardType, number> = {
+      'Guard': 1,
+      'Priest': 2,
+      'Baron': 3,
+      'Handmaid': 4,
+      'Prince': 5,
+      'King': 6,
+      'Countess': 7,
+      'Princess': 8
+    };
+    return values[card];
   }
 }
