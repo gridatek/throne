@@ -283,11 +283,30 @@ import { CardType, GamePlayer } from '../models/game.models';
               </div>
             }
 
-            @if (!isMyTurn() && !isEliminated()) {
-              <div class="mt-4 bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg text-center">
-                Waiting for other players...
-              </div>
-            }
+            <!-- Always Visible Status Message -->
+            <div class="mt-4 px-4 py-3 rounded-lg text-center font-medium"
+              [class.bg-red-50]="isEliminated()"
+              [class.border-red-200]="isEliminated()"
+              [class.text-red-800]="isEliminated()"
+              [class.bg-green-50]="isMyTurn() && !isEliminated()"
+              [class.border-green-200]="isMyTurn() && !isEliminated()"
+              [class.text-green-800]="isMyTurn() && !isEliminated()"
+              [class.bg-blue-50]="!isMyTurn() && !isEliminated()"
+              [class.border-blue-200]="!isMyTurn() && !isEliminated()"
+              [class.text-blue-800]="!isMyTurn() && !isEliminated()"
+              class="border">
+              @if (isEliminated()) {
+                <span>❌ You've been eliminated - wait for next round</span>
+              } @else if (isMyTurn() && !hasDrawn()) {
+                <span>🎯 Your turn - Draw a card to begin</span>
+              } @else if (isMyTurn() && hasDrawn() && !selectedCard()) {
+                <span>🎯 Your turn - Select and play a card</span>
+              } @else if (isMyTurn() && selectedCard()) {
+                <span>🎯 Your turn - Complete your card action</span>
+              } @else {
+                <span>⏳ Waiting for {{ getCurrentTurnPlayerName() }}...</span>
+              }
+            </div>
           </div>
         </main>
 
