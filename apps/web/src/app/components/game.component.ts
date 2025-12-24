@@ -112,6 +112,22 @@ import { CardType, GamePlayer } from '../models/game.models';
                     <p class="text-xs text-gray-500 italic">None</p>
                   }
                 </div>
+
+                <!-- Revealed Card (from Priest) -->
+                @if (!player.is_eliminated) {
+                  <div class="mt-2 pt-2 border-t border-gray-300">
+                    <p class="text-xs font-semibold text-gray-700 mb-1.5">Revealed Card:</p>
+                    @if (getSeenCard(player.player_id); as seenCard) {
+                      <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold border border-blue-300">
+                        {{ seenCard }}
+                      </span>
+                    } @else {
+                      <span class="px-2 py-1 bg-gray-100 text-gray-500 rounded text-xs font-semibold border border-gray-300">
+                        ?
+                      </span>
+                    }
+                  </div>
+                }
               </div>
             }
           </div>
@@ -864,5 +880,33 @@ export class GameComponent implements OnInit, OnDestroy {
       'Princess': 8
     };
     return values[card];
+  }
+
+  getSeenCard(playerId: string): CardType | null {
+    const myId = this.supabaseService.getCurrentPlayerId();
+    const actions = this.recentActions();
+
+    // Find the most recent Priest action where I played it on this player
+    for (let i = actions.length - 1; i >= 0; i--) {
+      const action = actions[i];
+
+      // Check if I played Priest on this player
+      if (action.card_played === 'Priest' &&
+          action.player_id === myId &&
+          action.target_player_id === playerId &&
+          action.details?.['revealed_card']) {
+
+        // Check if I've taken another turn since seeing their card
+        // Look for any action after this one where I played a card
+        const myNextAction = actions.slice(i + 1).find(a => a.player_id === myId && a.card_played);
+
+        // If I haven't taken another turn yet, show the card I saw
+        if (!myNextAction) {
+          return action.details['revealed_card'] as CardType;
+        }
+      }
+    }
+
+    return null;
   }
 }
