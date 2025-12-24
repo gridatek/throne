@@ -22,6 +22,21 @@ import { CardType, GamePlayer } from '../models/game.models';
               <p class="text-sm text-gray-600">Round {{ gameState()?.round_number || 1 }}</p>
             </div>
 
+            <!-- Turn Indicator -->
+            <div class="text-center">
+              @if (isMyTurn()) {
+                <div class="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg animate-pulse">
+                  <p class="text-xs font-medium">It's Your Turn!</p>
+                  <p class="text-2xl font-bold">🎯</p>
+                </div>
+              } @else {
+                <div class="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg">
+                  <p class="text-xs font-medium">Current Turn:</p>
+                  <p class="text-lg font-bold">{{ getCurrentTurnPlayerName() }}</p>
+                </div>
+              }
+            </div>
+
             <div class="text-right">
               <p class="text-sm text-gray-600">Deck</p>
               <p class="text-2xl font-bold text-purple-600">{{ gameState()?.deck?.length || 0 }} 🃏</p>
@@ -43,7 +58,12 @@ import { CardType, GamePlayer } from '../models/game.models';
                   {{ player.player_name.charAt(0).toUpperCase() }}
                 </div>
                 <div class="flex-1">
-                  <p class="font-bold text-gray-900">{{ player.player_name }}</p>
+                  <div class="flex items-center gap-2">
+                    <p class="font-bold text-gray-900">{{ player.player_name }}</p>
+                    @if (isMe(player)) {
+                      <span class="bg-blue-500 text-white text-xs px-2 py-0.5 rounded font-bold">YOU</span>
+                    }
+                  </div>
                   <div class="flex items-center space-x-1">
                     @for (token of [].constructor(player.tokens); track $index) {
                       <span class="text-sm">❤️</span>
@@ -354,6 +374,11 @@ export class GameComponent implements OnInit, OnDestroy {
     return false;
   }
 
+  isMe(player: GamePlayer): boolean {
+    const myId = this.supabaseService.getCurrentPlayerId();
+    return player.player_id === myId;
+  }
+
   isEliminated(): boolean {
     const myId = this.supabaseService.getCurrentPlayerId();
     const me = this.players().find(p => p.player_id === myId);
@@ -489,6 +514,12 @@ export class GameComponent implements OnInit, OnDestroy {
   getPlayerName(playerId: string): string {
     const player = this.players().find(p => p.player_id === playerId);
     return player?.player_name || 'Unknown';
+  }
+
+  getCurrentTurnPlayerName(): string {
+    const state = this.gameState();
+    if (!state?.current_turn_player_id) return 'Unknown';
+    return this.getPlayerName(state.current_turn_player_id);
   }
 
   formatAction(action: any): string {
