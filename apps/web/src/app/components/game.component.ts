@@ -729,30 +729,7 @@ export class GameComponent implements OnInit, OnDestroy {
 
     // If action has a detailed message in details, use that as base
     if (action.details?.message) {
-      let message = action.details.message;
-
-      // Add secret information only for involved players
-      if (isInvolved) {
-        // Priest: Show revealed card to the player who played it
-        if (action.card_played === 'Priest' && action.player_id === myId && action.details?.revealed_card && !action.details?.target_protected) {
-          message += ` [You saw: ${action.details.revealed_card}]`;
-        }
-
-        // Baron: Show card values to involved players
-        if (action.card_played === 'Baron' && action.details?.baron_result && !action.details?.target_protected) {
-          const result = action.details.baron_result;
-          const myCard = result.myCard;
-          const theirCard = result.theirCard;
-          message += ` [${playerName}: ${myCard}, ${targetName}: ${theirCard}]`;
-        }
-
-        // Prince: Show discarded card to involved players (unless it was Princess - already public)
-        if (action.card_played === 'Prince' && action.details?.discarded_card && action.details.discarded_card !== 'Princess' && !action.details?.target_protected) {
-          message += ` [Discarded: ${action.details.discarded_card}]`;
-        }
-      }
-
-      return message;
+      return action.details.message;
     }
 
     // Fallback to old formatting for backwards compatibility
@@ -769,9 +746,6 @@ export class GameComponent implements OnInit, OnDestroy {
         if (action.details?.target_protected) {
           return `${playerName} played Priest on ${targetName} - No effect (protected)`;
         }
-        if (action.player_id === myId && action.details?.revealed_card) {
-          return `${playerName} played Priest on ${targetName} - Saw: ${action.details.revealed_card}`;
-        }
         return `${playerName} played Priest on ${targetName}`;
 
       case 'Baron':
@@ -780,25 +754,11 @@ export class GameComponent implements OnInit, OnDestroy {
         }
         if (action.details?.baron_result) {
           const result = action.details.baron_result;
-
-          // Only show cards to involved players
-          if (isInvolved) {
-            const myCard = result.myCard;
-            const theirCard = result.theirCard;
-            if (result.winner === null) {
-              return `${playerName} played Baron on ${targetName} - Tie! [${playerName}: ${myCard}, ${targetName}: ${theirCard}]`;
-            } else {
-              const loserName = result.winner === action.player_id ? targetName : playerName;
-              return `${playerName} played Baron on ${targetName}. ${loserName} is eliminated! [${playerName}: ${myCard}, ${targetName}: ${theirCard}]`;
-            }
+          if (result.winner === null) {
+            return `${playerName} played Baron on ${targetName} - Tie!`;
           } else {
-            // Other players just see who was eliminated
-            if (result.winner === null) {
-              return `${playerName} played Baron on ${targetName} - Tie!`;
-            } else {
-              const loserName = result.winner === action.player_id ? targetName : playerName;
-              return `${playerName} played Baron on ${targetName}. ${loserName} is eliminated!`;
-            }
+            const loserName = result.winner === action.player_id ? targetName : playerName;
+            return `${playerName} played Baron on ${targetName}. ${loserName} is eliminated!`;
           }
         }
         return `${playerName} played Baron on ${targetName}`;
