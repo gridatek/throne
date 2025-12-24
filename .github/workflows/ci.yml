@@ -27,7 +27,8 @@ jobs:
 
       - name: Create config.json
         run: |
-          cat > apps/web/src/assets/config.json << 'EOF'
+          mkdir -p apps/web/public/assets
+          cat > apps/web/public/assets/config.json << 'EOF'
           {
             "production": false,
             "supabase": {
