@@ -742,13 +742,15 @@ export class GameService {
       const newCard = state.deck[0];
       const newDeck = state.deck.slice(1);
 
-      // If targeting yourself, keep Prince and add new card, else just replace with new card
+      // Build new hand: remove discarded card, add new card
       let newHand: CardType[];
       if (targetId === playerId && targetHand.cards.length === 2) {
-        // Keep Prince, add new card (Prince will be removed by main playCard logic)
-        newHand = ['Prince', newCard];
+        // When targeting yourself: remove the discarded card, keep Prince, add new card
+        // Prince will be removed later by main playCard logic
+        newHand = targetHand.cards.filter((c: CardType) => c !== discardedCard);
+        newHand.push(newCard);
       } else {
-        // Replace discarded card with new card
+        // When targeting others: just replace with new card
         newHand = [newCard];
       }
 
@@ -765,7 +767,9 @@ export class GameService {
       // Use set aside card
       let newHand: CardType[];
       if (targetId === playerId && targetHand.cards.length === 2) {
-        newHand = ['Prince', state.set_aside_card];
+        // Remove discarded card, keep Prince, add set-aside card
+        newHand = targetHand.cards.filter((c: CardType) => c !== discardedCard);
+        newHand.push(state.set_aside_card);
       } else {
         newHand = [state.set_aside_card];
       }
