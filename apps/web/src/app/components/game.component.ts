@@ -518,8 +518,8 @@ export class GameComponent implements OnInit, OnDestroy {
     const state = this.gameState();
     const currentRound = state?.round_number;
 
-    // Find the win_round action for the current round
-    for (let i = actions.length - 1; i >= 0; i--) {
+    // Find the win_round action for the current round (actions are newest first)
+    for (let i = 0; i < actions.length; i++) {
       const action = actions[i];
       if (action.round_number === currentRound && action.action_type === 'win_round') {
         // Check if won by elimination
@@ -944,8 +944,8 @@ export class GameComponent implements OnInit, OnDestroy {
     const actions = this.recentActions();
     const currentRound = this.gameState()?.round_number;
 
-    // Find the most recent play_card action from current round
-    for (let i = actions.length - 1; i >= 0; i--) {
+    // Actions are ordered newest first, so iterate from start
+    for (let i = 0; i < actions.length; i++) {
       const action = actions[i];
       if (action.round_number === currentRound && action.card_played) {
         return action.card_played;
@@ -975,7 +975,8 @@ export class GameComponent implements OnInit, OnDestroy {
     const currentRound = this.gameState()?.round_number;
 
     // Find the most recent Priest action where I played it on this player in current round
-    for (let i = actions.length - 1; i >= 0; i--) {
+    // Actions are ordered newest first, so iterate from start
+    for (let i = 0; i < actions.length; i++) {
       const action = actions[i];
 
       // Only consider actions from current round
@@ -990,8 +991,8 @@ export class GameComponent implements OnInit, OnDestroy {
           action.details?.['revealed_card']) {
 
         // Check if I've taken another turn since seeing their card
-        // Look for any action after this one where I played a card
-        const myNextAction = actions.slice(i + 1).find(a =>
+        // Look for any newer action (lower index) where I played a card
+        const myNextAction = actions.slice(0, i).find(a =>
           a.round_number === currentRound &&
           a.player_id === myId &&
           a.card_played
@@ -1013,7 +1014,8 @@ export class GameComponent implements OnInit, OnDestroy {
     const currentRound = this.gameState()?.round_number;
 
     // Find the most recent Priest action I played in current round
-    for (let i = actions.length - 1; i >= 0; i--) {
+    // Actions are ordered newest first, so iterate from start
+    for (let i = 0; i < actions.length; i++) {
       const action = actions[i];
 
       if (action.round_number === currentRound &&
