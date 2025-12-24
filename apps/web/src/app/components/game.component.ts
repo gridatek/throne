@@ -161,10 +161,10 @@ import { CardType, GamePlayer } from '../models/game.models';
                   <div class="relative">
                     <button
                       (click)="drawCard()"
-                      [disabled]="!canDraw() || isSpectator()"
+                      [disabled]="!canDraw() || isObserver()"
                       class="relative group transition-transform hover:scale-105 disabled:hover:scale-100"
-                      [class.cursor-pointer]="canDraw() && !isSpectator()"
-                      [class.cursor-not-allowed]="!canDraw() || isSpectator()"
+                      [class.cursor-pointer]="canDraw() && !isObserver()"
+                      [class.cursor-not-allowed]="!canDraw() || isObserver()"
                     >
                       <!-- Stacked deck effect -->
                       <div class="absolute top-1 left-1 w-32 h-44 bg-purple-400 rounded-lg opacity-60"></div>
@@ -221,7 +221,7 @@ import { CardType, GamePlayer } from '../models/game.models';
                 @for (card of myHand()!.cards; track $index) {
                   <app-card
                     [card]="card"
-                    [selectable]="!isSpectator() && isMyTurn() && hasDrawn() && canSelectCard(card)"
+                    [selectable]="!isObserver() && isMyTurn() && hasDrawn() && canSelectCard(card)"
                     [selected]="selectedCard() === card"
                     (cardClick)="selectCard(card)"
                   />
@@ -269,11 +269,11 @@ import { CardType, GamePlayer } from '../models/game.models';
                     @for (player of getAllPlayersWithMeFirst(); track player.id) {
                       <button
                         (click)="targetPlayer.set(player.player_id)"
-                        [disabled]="player.is_eliminated || isSpectator()"
+                        [disabled]="player.is_eliminated || isObserver()"
                         [class.ring-2]="targetPlayer() === player.player_id"
                         [class.ring-purple-500]="targetPlayer() === player.player_id"
-                        [class.opacity-50]="player.is_eliminated || isSpectator()"
-                        [class.cursor-not-allowed]="player.is_eliminated || isSpectator()"
+                        [class.opacity-50]="player.is_eliminated || isObserver()"
+                        [class.cursor-not-allowed]="player.is_eliminated || isObserver()"
                         class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-all"
                       >
                         {{ player.player_name }}@if (isMe(player)) {
@@ -293,11 +293,11 @@ import { CardType, GamePlayer } from '../models/game.models';
                     @for (cardType of getGuessableCards(); track cardType) {
                       <button
                         (click)="guessCard.set(cardType)"
-                        [disabled]="isSpectator()"
+                        [disabled]="isObserver()"
                         [class.ring-2]="guessCard() === cardType"
                         [class.ring-purple-500]="guessCard() === cardType"
-                        [class.opacity-50]="isSpectator()"
-                        [class.cursor-not-allowed]="isSpectator()"
+                        [class.opacity-50]="isObserver()"
+                        [class.cursor-not-allowed]="isObserver()"
                         class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-sm"
                       >
                         {{ cardType }}
@@ -310,11 +310,11 @@ import { CardType, GamePlayer } from '../models/game.models';
                 <div>
                   <button
                     (click)="playSelectedCard()"
-                    [disabled]="!canPlayCard() || playing() || isSpectator()"
+                    [disabled]="!canPlayCard() || playing() || isObserver()"
                     class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors"
                   >
-                    @if (isSpectator()) {
-                      <span>Spectator Mode</span>
+                    @if (isObserver()) {
+                      <span>Observer Mode</span>
                     } @else if (playing()) {
                       <span>Playing...</span>
                     } @else {
@@ -590,6 +590,11 @@ export class GameComponent implements OnInit, OnDestroy {
     const myId = this.supabaseService.getCurrentPlayerId();
     const me = this.players().find(p => p.player_id === myId);
     return !me; // Spectator if not in players list
+  }
+
+  isObserver(): boolean {
+    // Observer = spectator OR eliminated player (can watch but not interact)
+    return this.isSpectator() || this.isEliminated();
   }
 
   isEliminated(): boolean {
