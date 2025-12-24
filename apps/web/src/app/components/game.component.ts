@@ -13,17 +13,50 @@ import { CardType, GamePlayer } from '../models/game.models';
   imports: [CommonModule, FormsModule, CardComponent],
   template: `
     <div class="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-red-100">
+      <!-- Spectator Username Prompt Modal -->
+      @if (showSpectatorPrompt()) {
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <h2 class="text-2xl font-bold text-purple-900 mb-4">👁️ Spectator Mode</h2>
+            <p class="text-gray-700 mb-6">You're watching this game. Please enter a username to continue:</p>
+            <form (submit)="setSpectatorUsername(spectatorUsernameInput.value); $event.preventDefault()">
+              <input
+                #spectatorUsernameInput
+                type="text"
+                placeholder="Enter your username"
+                required
+                minlength="2"
+                maxlength="20"
+                class="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:outline-none focus:border-purple-500 mb-4"
+              />
+              <button
+                type="submit"
+                class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+              >
+                Start Watching
+              </button>
+            </form>
+          </div>
+        </div>
+      }
+
       <!-- Global Sticky Header -->
       <header class="sticky top-0 z-50 bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 text-white shadow-lg">
         <div class="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
           <div class="flex items-center gap-3">
             <h1 class="text-3xl font-bold">💌 Love Letter</h1>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-4">
+            @if (game(); as currentGame) {
+              <div class="text-right">
+                <p class="text-xs opacity-90">Game Code</p>
+                <p class="text-lg font-bold font-mono">{{ currentGame.room_code }}</p>
+              </div>
+            }
             @if (isSpectator()) {
               <div class="text-right">
                 <p class="text-xs opacity-90">Spectator Mode</p>
-                <p class="text-lg font-bold">👁️ Watching</p>
+                <p class="text-lg font-bold">👁️ {{ spectatorUsername() || 'Guest' }}</p>
               </div>
             } @else {
               <div class="text-right">
@@ -429,6 +462,8 @@ export class GameComponent implements OnInit, OnDestroy {
   playing = signal(false);
   drawing = signal(false);
   error = signal('');
+  spectatorUsername = signal('');
+  showSpectatorPrompt = signal(false);
 
   private gameId: string | null = null;
 
@@ -531,7 +566,26 @@ export class GameComponent implements OnInit, OnDestroy {
     if (game?.status === 'waiting') {
       // Game hasn't started yet, go back to lobby
       this.router.navigate(['/lobby', this.gameId]);
+      return;
     }
+
+    // Check if spectator needs to provide username
+    if (this.isSpectator()) {
+      const savedUsername = localStorage.getItem(`spectator_username_${this.gameId}`);
+      if (savedUsername) {
+        this.spectatorUsername.set(savedUsername);
+      } else {
+        this.showSpectatorPrompt.set(true);
+      }
+    }
+  }
+
+  setSpectatorUsername(username: string): void {
+    if (!this.gameId || !username.trim()) return;
+
+    this.spectatorUsername.set(username.trim());
+    localStorage.setItem(`spectator_username_${this.gameId}`, username.trim());
+    this.showSpectatorPrompt.set(false);
   }
 
   ngOnDestroy(): void {
