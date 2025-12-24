@@ -38,7 +38,8 @@ import { CardType, CARD_VALUES, CARD_DESCRIPTIONS } from '../models/game.models'
     }
 
     .card-container.selected {
-      transform: translateY(-12px);
+      transform: translateY(-16px) scale(1.15);
+      z-index: 10;
     }
 
     .card {
