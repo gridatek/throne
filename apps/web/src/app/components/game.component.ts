@@ -22,43 +22,71 @@ import { CardType, GamePlayer } from '../models/game.models';
           <div class="space-y-3">
             @for (player of players(); track player.id) {
               <div
-                class="bg-gray-50 rounded-lg p-3"
-                [class.ring-4]="isCurrentTurn(player)"
-                [class.ring-yellow-400]="isCurrentTurn(player)"
+                class="bg-gray-50 rounded-lg p-3 border-2"
+                [class.border-yellow-400]="isCurrentTurn(player)"
+                [class.bg-yellow-50]="isCurrentTurn(player)"
+                [class.border-gray-200]="!isCurrentTurn(player)"
                 [class.opacity-50]="player.is_eliminated"
               >
-                <div class="flex items-center space-x-3 mb-2">
+                <!-- Player Header -->
+                <div class="flex items-center space-x-3 mb-3">
                   <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-lg shrink-0">
                     {{ player.player_name.charAt(0).toUpperCase() }}
                   </div>
                   <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2">
-                      <p class="font-bold text-gray-900 truncate">{{ player.player_name }}</p>
+                    <div class="flex items-center gap-2 mb-1">
+                      <p class="font-bold text-gray-900 truncate text-base">{{ player.player_name }}</p>
                       @if (isMe(player)) {
                         <span class="bg-blue-500 text-white text-xs px-2 py-0.5 rounded font-bold shrink-0">YOU</span>
                       }
                     </div>
-                    <div class="flex items-center space-x-1">
-                      @for (token of [].constructor(player.tokens); track $index) {
-                        <span class="text-sm">❤️</span>
-                      }
+                    <!-- Coins/Tokens -->
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs font-semibold text-gray-600">Coins:</span>
+                      <div class="flex items-center gap-1">
+                        <span class="text-lg font-bold text-purple-600">{{ player.tokens }}</span>
+                        @for (token of [].constructor(player.tokens); track $index) {
+                          <span class="text-sm">❤️</span>
+                        }
+                      </div>
                     </div>
                   </div>
                 </div>
 
+                <!-- Status Badge -->
                 @if (player.is_eliminated) {
-                  <div class="bg-red-100 text-red-700 text-xs font-medium px-2 py-1 rounded text-center">
-                    Eliminated
+                  <div class="bg-red-100 text-red-700 text-xs font-bold px-2 py-1.5 rounded text-center mb-2">
+                    ❌ ELIMINATED
                   </div>
                 } @else if (isCurrentTurn(player)) {
-                  <div class="bg-yellow-100 text-yellow-700 text-xs font-medium px-2 py-1 rounded text-center animate-pulse">
-                    Current Turn
+                  <div class="bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1.5 rounded text-center animate-pulse mb-2">
+                    ⚡ ACTIVE TURN
                   </div>
                 } @else if (isProtected(player)) {
-                  <div class="bg-green-100 text-green-700 text-xs font-medium px-2 py-1 rounded text-center">
-                    Protected 🛡️
+                  <div class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1.5 rounded text-center mb-2">
+                    🛡️ PROTECTED
+                  </div>
+                } @else {
+                  <div class="bg-gray-200 text-gray-600 text-xs font-bold px-2 py-1.5 rounded text-center mb-2">
+                    ⏳ WAITING
                   </div>
                 }
+
+                <!-- Discarded Cards -->
+                <div class="mt-2 pt-2 border-t border-gray-300">
+                  <p class="text-xs font-semibold text-gray-700 mb-1.5">Discarded Cards:</p>
+                  @if (getPlayerDiscards(player.player_id).length > 0) {
+                    <div class="flex flex-wrap gap-1">
+                      @for (card of getPlayerDiscards(player.player_id); track $index) {
+                        <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold border border-purple-300">
+                          {{ card }}
+                        </span>
+                      }
+                    </div>
+                  } @else {
+                    <p class="text-xs text-gray-500 italic">None</p>
+                  }
+                </div>
               </div>
             }
           </div>
@@ -213,22 +241,6 @@ import { CardType, GamePlayer } from '../models/game.models';
               <div class="mt-4 bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg text-center">
                 Waiting for other players...
               </div>
-            }
-          </div>
-
-          <!-- Discard Pile (Bottom of Desk) -->
-          <div class="bg-gray-50 border-t p-4">
-            <h3 class="text-lg font-bold text-gray-800 mb-3">Discard Pile</h3>
-            @if (gameState()?.discard_pile && gameState()!.discard_pile.length > 0) {
-              <div class="flex flex-wrap gap-2">
-                @for (card of gameState()!.discard_pile; track $index) {
-                  <span class="px-2 py-1 bg-gray-100 rounded text-sm">
-                    {{ card }}
-                  </span>
-                }
-              </div>
-            } @else {
-              <p class="text-gray-500 text-sm">Empty</p>
             }
           </div>
         </main>
@@ -718,5 +730,26 @@ export class GameComponent implements OnInit, OnDestroy {
 
   returnToHome(): void {
     this.router.navigate(['/']);
+  }
+
+  getPlayerDiscards(playerId: string): CardType[] {
+    const actions = this.recentActions();
+    const discards: CardType[] = [];
+
+    actions.forEach(action => {
+      // Cards this player played
+      if (action.player_id === playerId && action.card_played) {
+        discards.push(action.card_played);
+      }
+
+      // Cards forced to discard by Prince (target was this player)
+      if (action.card_played === 'Prince' &&
+          action.target_player_id === playerId &&
+          action.details?.['discarded_card']) {
+        discards.push(action.details['discarded_card']);
+      }
+    });
+
+    return discards;
   }
 }
