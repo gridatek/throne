@@ -130,19 +130,28 @@ import { CardType, GamePlayer } from '../models/game.models';
                   </div>
                 }
 
-                <!-- Discarded Cards -->
+                <!-- Discarded Cards / Eliminated Message -->
                 <div class="mt-2 pt-2 border-t border-gray-300">
-                  <p class="text-xs font-semibold text-gray-700 mb-1.5">Discarded Cards:</p>
-                  @if (getPlayerDiscards(player.player_id).length > 0) {
-                    <div class="flex flex-wrap gap-1">
-                      @for (card of getPlayerDiscards(player.player_id); track $index) {
-                        <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold border border-purple-300">
-                          {{ card }}
-                        </span>
-                      }
+                  @if (player.is_eliminated) {
+                    <!-- Show eliminated message instead of cards -->
+                    <div class="bg-red-50 border border-red-300 rounded-lg p-3 text-center">
+                      <p class="text-sm font-bold text-red-700">💀 Out of Game</p>
+                      <p class="text-xs text-red-600 mt-1">Eliminated</p>
                     </div>
                   } @else {
-                    <p class="text-xs text-gray-500 italic">None</p>
+                    <!-- Show discarded cards for active players -->
+                    <p class="text-xs font-semibold text-gray-700 mb-1.5">Discarded Cards:</p>
+                    @if (getPlayerDiscards(player.player_id).length > 0) {
+                      <div class="flex flex-wrap gap-1">
+                        @for (card of getPlayerDiscards(player.player_id); track $index) {
+                          <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold border border-purple-300">
+                            {{ card }}
+                          </span>
+                        }
+                      </div>
+                    } @else {
+                      <p class="text-xs text-gray-500 italic">None</p>
+                    }
                   }
                 </div>
               </div>
