@@ -742,9 +742,19 @@ export class GameService {
       const newCard = state.deck[0];
       const newDeck = state.deck.slice(1);
 
+      // If targeting yourself, keep Prince and add new card, else just replace with new card
+      let newHand: CardType[];
+      if (targetId === playerId && targetHand.cards.length === 2) {
+        // Keep Prince, add new card (Prince will be removed by main playCard logic)
+        newHand = ['Prince', newCard];
+      } else {
+        // Replace discarded card with new card
+        newHand = [newCard];
+      }
+
       await supabaseClient
         .from('player_hands')
-        .update({ cards: [newCard] })
+        .update({ cards: newHand })
         .eq('id', targetHand.id);
 
       await supabaseClient
@@ -753,9 +763,16 @@ export class GameService {
         .eq('id', state.id);
     } else if (state.set_aside_card) {
       // Use set aside card
+      let newHand: CardType[];
+      if (targetId === playerId && targetHand.cards.length === 2) {
+        newHand = ['Prince', state.set_aside_card];
+      } else {
+        newHand = [state.set_aside_card];
+      }
+
       await supabaseClient
         .from('player_hands')
-        .update({ cards: [state.set_aside_card] })
+        .update({ cards: newHand })
         .eq('id', targetHand.id);
     }
   }
