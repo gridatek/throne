@@ -780,14 +780,25 @@ export class GameComponent implements OnInit, OnDestroy {
         }
         if (action.details?.baron_result) {
           const result = action.details.baron_result;
-          const myCard = result.myCard;
-          const theirCard = result.theirCard;
-          if (result.winner === null) {
-            return `${playerName} (${myCard}) vs ${targetName} (${theirCard}) - Tie!`;
+
+          // Only show cards to involved players
+          if (isInvolved) {
+            const myCard = result.myCard;
+            const theirCard = result.theirCard;
+            if (result.winner === null) {
+              return `${playerName} played Baron on ${targetName} - Tie! [${playerName}: ${myCard}, ${targetName}: ${theirCard}]`;
+            } else {
+              const loserName = result.winner === action.player_id ? targetName : playerName;
+              return `${playerName} played Baron on ${targetName}. ${loserName} is eliminated! [${playerName}: ${myCard}, ${targetName}: ${theirCard}]`;
+            }
           } else {
-            const winnerName = this.getPlayerName(result.winner);
-            const loserName = result.winner === action.player_id ? targetName : playerName;
-            return `${playerName} (${myCard}) vs ${targetName} (${theirCard}) - ${winnerName} wins, ${loserName} eliminated`;
+            // Other players just see who was eliminated
+            if (result.winner === null) {
+              return `${playerName} played Baron on ${targetName} - Tie!`;
+            } else {
+              const loserName = result.winner === action.player_id ? targetName : playerName;
+              return `${playerName} played Baron on ${targetName}. ${loserName} is eliminated!`;
+            }
           }
         }
         return `${playerName} played Baron on ${targetName}`;
